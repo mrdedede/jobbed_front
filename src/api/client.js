@@ -115,6 +115,8 @@ function handleUnauthorized() {
  * @param {Object<string, string>=} options.headers Extra headers.
  * @param {AbortSignal=} options.signal Lets the caller cancel the request.
  * @param {number=} options.timeout Timeout override, in milliseconds.
+ * @param {boolean=} options.skipUnauthorized If true, a 401 does not run the
+ *     global unauthorized handler (for 401s that mean "wrong input").
  * @return {Promise<*>} Parsed JSON body, or null for a 204 response.
  * @throws {ApiError} On a non-2xx status, network failure or timeout.
  * @throws {DOMException} AbortError, when the caller's signal aborts.
@@ -126,6 +128,7 @@ export async function request(path, options = {}) {
     headers,
     signal: callerSignal,
     timeout = DEFAULT_TIMEOUT_MS,
+    skipUnauthorized = false,
   } = options;
 
   const timeoutSignal = AbortSignal.timeout(timeout);
@@ -161,7 +164,7 @@ export async function request(path, options = {}) {
     response.status === 204 ? null : await response.json().catch(() => null);
 
   if (!response.ok) {
-    if (response.status === 401) handleUnauthorized();
+    if (response.status === 401 && !skipUnauthorized) handleUnauthorized();
     throw new ApiError({
       status: response.status,
       detail: extractErrorDetail(

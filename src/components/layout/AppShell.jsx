@@ -1,6 +1,6 @@
 import { AppShell as MantineAppShell, Burger, Group, Menu, Button, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import { logout } from '../../auth/AuthContext.jsx';
 import { getMe } from '../../api/endpoints/me.js';
 import { useFetch } from '../../hooks/useFetch.js';
@@ -28,6 +28,7 @@ export default function AppShell() {
               <Button variant="subtle">{me?.email ?? 'Account'}</Button>
             </Menu.Target>
             <Menu.Dropdown>
+              <Menu.Item component={Link} to="/account">Account</Menu.Item>
               <Menu.Item color="red" onClick={logout}>Log out</Menu.Item>
             </Menu.Dropdown>
           </Menu>

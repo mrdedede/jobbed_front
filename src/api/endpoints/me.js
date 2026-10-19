@@ -20,11 +20,11 @@ export function getMe(options) {
  * @param {{current_password: string, new_password: string}} passwords
  * @param {Object=} options Request options, see `request` in client.js.
  * @return {Promise<null>}
- * @throws {ApiError} 401 if the current password is wrong. Note that this
- *     also triggers the global 401 handler (logout).
+ * @throws {ApiError} 401 if the current password is wrong. This does not
+ *     trigger the global 401 handler (no logout).
  */
 export function changePassword(passwords, options) {
-  return api.put('/v1/me/password', passwords, options);
+  return api.put('/v1/me/password', passwords, { ...options, skipUnauthorized: true });
 }
 
 /**
