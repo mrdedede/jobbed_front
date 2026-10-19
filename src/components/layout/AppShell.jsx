@@ -1,9 +1,14 @@
-import { AppShell as MantineAppShell, Burger, Group, Title } from '@mantine/core';
+import { AppShell as MantineAppShell, Burger, Group, Menu, Button, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import { Outlet } from 'react-router-dom';
+import { logout } from '../../auth/AuthContext.jsx';
+import { getMe } from '../../api/endpoints/me.js';
+import { useFetch } from '../../hooks/useFetch.js';
 import NavLinks from './NavLinks.jsx';
 
-export default function AppShell({ children }) {
+export default function AppShell() {
   const [opened, { toggle }] = useDisclosure();
+  const { data: me } = useFetch((signal) => getMe({ signal }));
 
   return (
     <MantineAppShell
@@ -12,9 +17,20 @@ export default function AppShell({ children }) {
       padding="md"
     >
       <MantineAppShell.Header>
-        <Group h="100%" px="md">
-          <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-          <Title order={3}>Joblister</Title>
+        <Group h="100%" px="md" justify="space-between">
+          <Group>
+            <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
+            <Title order={3}>Joblister</Title>
+          </Group>
+
+          <Menu position="bottom-end">
+            <Menu.Target>
+              <Button variant="subtle">{me?.email ?? 'Account'}</Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item color="red" onClick={logout}>Log out</Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </Group>
       </MantineAppShell.Header>
 
@@ -22,7 +38,9 @@ export default function AppShell({ children }) {
         <NavLinks />
       </MantineAppShell.Navbar>
 
-      <MantineAppShell.Main>{children}</MantineAppShell.Main>
+      <MantineAppShell.Main>
+        <Outlet />
+      </MantineAppShell.Main>
     </MantineAppShell>
   );
 }

@@ -7,7 +7,7 @@
  */
 
 import { useSyncExternalStore } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { configureClient } from '../api/client.js';
 
 const STORAGE_KEY = 'joblister.token';
@@ -140,17 +140,16 @@ export function useAuth() {
 }
 
 /**
- * Route wrapper: renders its children only when a token is present,
- * otherwise redirects to /login, remembering where the user was heading.
+ * Layout route: renders the nested routes (<Outlet />) only when a token is
+ * present, otherwise redirects to /login, remembering where the user was heading.
  *
- * @param {{children: import('react').ReactNode}} props
  * @return {import('react').ReactNode}
  */
-export function RequireAuth({ children }) {
+export function RequireAuth() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
-  return children;
+  return <Outlet />;
 }
