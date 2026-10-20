@@ -1,6 +1,7 @@
 import Dashboard from './pages/Dashboard/Dashboard.jsx';
 import Keywords from './pages/Keywords/Keywords.jsx';
 import Blacklist from './pages/Blacklist/Blacklist.jsx';
+import Cvs from './pages/Cvs/Cvs.jsx';
 import BoardsNoJobs from './pages/BoardsNoJobs/BoardsNoJobs.jsx';
 import ScrapeBoards from './pages/ScrapeBoards/ScrapeBoards.jsx';
 import ScrapeJobs from './pages/ScrapeJobs/ScrapeJobs.jsx';
@@ -11,6 +12,7 @@ export const navRoutes = [
   { path: '/', label: 'Dashboard', element: <Dashboard /> },
   { path: '/keywords', label: 'Keywords', element: <Keywords /> },
   { path: '/blacklist', label: 'Blacklist', element: <Blacklist /> },
+  { path: '/cvs', label: 'CVs', element: <Cvs /> },
   { path: '/boards-no-jobs', label: 'Boards without jobs', element: <BoardsNoJobs /> },
   { path: '/scrape-boards', label: 'Scrape boards', element: <ScrapeBoards /> },
   { path: '/scrape-jobs', label: 'Scrape jobs', element: <ScrapeJobs /> },
