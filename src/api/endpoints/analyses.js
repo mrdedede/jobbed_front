@@ -53,15 +53,18 @@ export function analyze({ limit, windowDays, model } = {}, options) {
 /**
  * Lists stored analyses.
  *
- * @param {{limit?: number, minGrade?: number}=} params `limit` 1-200 (API
- *     default 50), `minGrade` 0-100 (default 0).
+ * @param {{limit?: number, minGrade?: number, sinceDays?: number}=} params
+ *     `limit` 1-200 (API default 50), `minGrade` 0-100 (default 0),
+ *     `sinceDays` 1-365 keeps only analyses made within that many days
+ *     (default: all).
  * @param {Object=} options Request options, see `request` in client.js.
  * @return {Promise<Analysis[]>}
  */
-export function listAnalyses({ limit, minGrade } = {}, options) {
+export function listAnalyses({ limit, minGrade, sinceDays } = {}, options) {
   const query = new URLSearchParams();
   if (limit !== undefined) query.set('limit', limit);
   if (minGrade !== undefined) query.set('min_grade', minGrade);
+  if (sinceDays !== undefined) query.set('since_days', sinceDays);
   const queryString = query.size ? `?${query}` : '';
   return api.get(`/v1/me/analyses${queryString}`, options);
 }
