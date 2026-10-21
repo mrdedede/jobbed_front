@@ -1,35 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { analyze } from '../api/endpoints/analyses.js';
+import { toStopReason } from '../api/stopReason.js';
 
 /** Safety cap: 50 batches of up to 50 postings is far beyond the daily cap. */
 const MAX_BATCHES = 50;
 
 const INITIAL_PROGRESS = { batches: 0, analysed: 0, failed: 0, remaining: null };
 
-/**
- * Turns an API failure into something the UI can switch on.
- * The two 409s differ only by their detail text, so this matches on it.
- *
- * @param {ApiError} error
- * @return {{kind: string, message: string, retryAfter: ?number}}
- */
-function toStopReason(error) {
-  const { status, detail, retryAfter = null } = error;
-  if (status === 409 && /cv/i.test(detail)) {
-    return { kind: 'no-cv', message: 'You need an active CV before analysing.', retryAfter };
-  }
-  if (status === 409) {
-    return { kind: 'busy', message: 'An analysis is already running for your account.', retryAfter };
-  }
-  if (status === 429) {
-    return { kind: 'quota', message: 'Daily analysis limit reached.', retryAfter };
-  }
-  if (status === 502) {
-    return { kind: 'all-failed', message: 'Every grading call failed. Try again later.', retryAfter };
-  }
-  if (status === 0) return { kind: 'network', message: detail, retryAfter };
-  return { kind: 'error', message: detail ?? error.message, retryAfter };
-}
+const LABELS = { doing: 'analysing', thing: 'analysis' };
 
 /**
  * Runs analysis batches back to back until nothing remains, one request at a
@@ -100,7 +78,7 @@ export function useAnalyzeRun() {
       return setStatus('stopped');
     } catch (error) {
       if (signal.aborted) return undefined; // unmounted
-      setStopReason(toStopReason(error));
+      setStopReason(toStopReason(error, LABELS));
       return setStatus('failed');
     } finally {
       running.current = false;

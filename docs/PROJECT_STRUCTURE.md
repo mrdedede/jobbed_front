@@ -115,7 +115,8 @@ A shared categorical color palette (plus a pinned grey for "other" / unclassifie
 ## Currently-empty scaffolded folders
 `src/api/`, `src/api/endpoints/`, `src/hooks/`, `src/charts/` exist but are empty placeholders matching the planned architecture. They'll be filled in during the "shared infrastructure" build phase:
 - `api/` — a generic `fetch` wrapper + one thin module per backend resource (dashboard, boards, scrape-boards, scrape-jobs, ai-analysis, cv).
-- `hooks/` — `useFetch` (data loading), `usePolling` + `useAsyncJob` (for the long-running scrape/analysis/CV-gen jobs), `useTableQuery` (sortable/filterable tables).
+- `cv/` — renders a generated CV to .docx (`docx`) and PDF (print dialog) in the browser; the user's name, photo and languages live in `profileStore.js` (localStorage/IndexedDB) and never reach the server.
+- `hooks/` — `useFetch` (data loading), `usePolling` + `useAsyncJob` (long-running jobs), `useGenerateCv` (CV generation job + generated-CV list), `useTableQuery` (sortable/filterable tables).
 - `charts/` — thin per-chart wrapper components built on `@mantine/charts`.
 
 ---
@@ -127,4 +128,4 @@ A shared categorical color palette (plus a pinned grey for "other" / unclassifie
 - [React Router documentation](https://reactrouter.com/) — client-side routing.
 - [Recharts](https://recharts.org/) — the charting engine underneath `@mantine/charts`.
 - [react-markdown](https://github.com/remarkjs/react-markdown) — will render AI-analysis verdicts (markdown → React) in a later phase.
-- [mammoth.js](https://github.com/mwilliamson/mammoth.js) — will render in-browser DOCX previews (bold runs preserved) for generated CVs in a later phase.
+- [mammoth.js](https://github.com/mwilliamson/mammoth.js) — installed, not yet used; candidate for in-browser DOCX previews.
