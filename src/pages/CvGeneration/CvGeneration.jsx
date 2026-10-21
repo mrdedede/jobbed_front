@@ -5,6 +5,8 @@ import { notifications } from '@mantine/notifications';
 import QueryState from '../../components/QueryState.jsx';
 import StopAlert from '../../components/StopAlert.jsx';
 import CvProfileForm from '../../components/cv/CvProfileForm.jsx';
+import GeneratedCvEditor from '../../components/cv/GeneratedCvEditor.jsx';
+import { updateGeneratedCv } from '../../api/endpoints/generatedCvs.js';
 import { useAnalyses } from '../../hooks/useAnalyses.js';
 import { useGenerateCv } from '../../hooks/useGenerateCv.js';
 import { cvFilename } from '../../cv/filename.js';
@@ -20,10 +22,37 @@ export default function CvGeneration() {
   const analysesQuery = useAnalyses({ minGrade: MIN_GRADE });
   const { analyses } = analysesQuery;
   const active = gen.status === 'starting' || gen.status === 'running';
+  // `editing`: the GeneratedCv open in the editor, or null.
+  const [editing, setEditing] = useState(null);
+  // The posting last sent to Generate, until its CV shows up in the list.
+  const [pendingJobId, setPendingJobId] = useState(null);
 
   useEffect(() => {
-    if (gen.status === 'done') notifications.show({ color: 'green', message: 'CV generated' });
+    if (gen.status === 'done') {
+      notifications.show({ color: 'green', message: 'CV generated, review it before downloading' });
+    }
   }, [gen.status]);
+
+  // Open the new CV for review once the refetched list has it (the poll's
+  // `cv` can be null, the list cannot).
+  const fresh = gen.status === 'done' && gen.cvs.find((cv) => cv.job_id === pendingJobId);
+  useEffect(() => {
+    if (!fresh) return;
+    // oxlint-disable-next-line react/set-state-in-effect -- reacts to the list refetch
+    setEditing(fresh);
+    setPendingJobId(null);
+  }, [fresh]);
+
+  const generate = (jobId) => {
+    setPendingJobId(jobId);
+    gen.generate(jobId);
+  };
+
+  const saveEdit = async (cv) => {
+    await updateGeneratedCv(editing.cv_id, cv);
+    gen.refetch();
+    notifications.show({ color: 'green', message: 'CV saved' });
+  };
 
   // Coming from the dashboard's "Generate CV": that posting goes first.
   const selectedJobId = useLocation().state?.jobId;
@@ -70,6 +99,7 @@ export default function CvGeneration() {
                 <Table.Td>{cv.locale}</Table.Td>
                 <Table.Td>
                   <Group gap="xs" justify="flex-end">
+                    <Button size="xs" variant="default" onClick={() => setEditing(cv)}>Review / edit</Button>
                     <Button size="xs" variant="light" disabled={!details.profile?.name}
                       onClick={() => download(cv, 'docx')}>Word</Button>
                     <Button size="xs" variant="light" disabled={!details.profile?.name}
@@ -81,6 +111,9 @@ export default function CvGeneration() {
           </Table.Tbody>
         </Table>
       </QueryState>
+      {gen.cvs.length > 0 && (
+        <Text size="sm" c="dimmed">AI-generated CVs can contain mistakes. Review them before downloading.</Text>
+      )}
       {gen.cvs.length > 0 && !details.profile?.name && (
         <Text size="sm" c="dimmed">Enter your name above to enable downloads.</Text>
       )}
@@ -98,7 +131,7 @@ export default function CvGeneration() {
                 <Table.Td>{a.title}</Table.Td>
                 <Table.Td>
                   <Group justify="flex-end">
-                    <Button size="xs" disabled={active} onClick={() => gen.generate(a.job_id)}>
+                    <Button size="xs" disabled={active} onClick={() => generate(a.job_id)}>
                       Generate
                     </Button>
                   </Group>
@@ -108,6 +141,8 @@ export default function CvGeneration() {
           </Table.Tbody>
         </Table>
       </QueryState>
+
+      {editing && <GeneratedCvEditor generated={editing} onClose={() => setEditing(null)} onSave={saveEdit} />}
     </Stack>
   );
 }

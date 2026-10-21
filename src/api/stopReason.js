@@ -1,7 +1,7 @@
 /**
  * Turns an API failure into something the UI can switch on.
  * 409s differ only by their detail text, so this matches the exact strings the
- * backend sends (joblister_back/api/routers/user.py).
+ * backend sends (jobbed_back/api/routers/user.py).
  *
  * @param {ApiError} error
  * @param {{doing: string, thing: string}} labels How the failing action reads

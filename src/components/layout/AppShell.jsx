@@ -15,7 +15,7 @@ export default function AppShell() {
 
   const pageLabel = [...navRoutes, ...otherRoutes].find((route) => route.path === pathname)?.label;
   useEffect(() => {
-    document.title = pageLabel ? `${pageLabel} · Joblister` : 'Joblister';
+    document.title = pageLabel ? `${pageLabel} · Jobbed` : 'Jobbed';
   }, [pageLabel]);
   // Shared with pages through the outlet context (see Account), fetched once.
   const meQuery = useFetch((signal) => getMe({ signal }));
@@ -32,7 +32,7 @@ export default function AppShell() {
           <Group>
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm"
               aria-label={opened ? 'Close navigation' : 'Open navigation'} />
-            <Title order={3}>Joblister</Title>
+            <Title order={3}>Jobbed</Title>
           </Group>
 
           <Menu position="bottom-end">

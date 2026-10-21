@@ -41,7 +41,8 @@ function stopReasonOf(job) {
  * @return {{generate: function(string): Promise<void>,
  *     status: ('idle'|'starting'|'running'|'done'|'failed'),
  *     stopReason: ?{kind: string, message: string, retryAfter: ?number},
- *     cvs: GeneratedCv[], loaded: boolean, loading: boolean, listError: ?ApiError}}
+ *     cvs: GeneratedCv[], loaded: boolean, loading: boolean, listError: ?ApiError,
+ *     refetch: function(): void}}
  */
 export function useGenerateCv() {
   const job = useAsyncJob(
@@ -86,5 +87,6 @@ export function useGenerateCv() {
     loaded: data !== null,
     loading,
     listError,
+    refetch,
   };
 }

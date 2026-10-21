@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ingress-joblister-front
+  name: ingress-jobbed-front
   annotations:
     # Above the client's analyze timeout (170 s, src/api/endpoints/analyses.js)
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
@@ -17,13 +17,13 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: joblister-front
+            name: jobbed-front
             port:
               number: 80
       - path: /v1
         pathType: Prefix
         backend:
           service:
-            name: joblister-api
+            name: jobbed-api
             port:
               number: 8080

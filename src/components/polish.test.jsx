@@ -57,7 +57,7 @@ describe('AnalysisTable', () => {
 
 describe('loadProfile', () => {
   it('survives a corrupted stored profile', () => {
-    window.localStorage.setItem('joblister.cvProfile', JSON.stringify({ name: 3, languages: 'fr' }));
+    window.localStorage.setItem('jobbed.cvProfile', JSON.stringify({ name: 3, languages: 'fr' }));
     expect(loadProfile()).toEqual({ name: '', contact: '', languages: [] });
   });
 });

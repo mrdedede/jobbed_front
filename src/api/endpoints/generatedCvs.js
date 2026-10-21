@@ -55,3 +55,16 @@ export function getCvGeneration(generationId, options) {
 export function listGeneratedCvs(options) {
   return api.get('/v1/me/generated-cvs', options);
 }
+
+/**
+ * Replaces a generated CV's body with the user's edit.
+ *
+ * @param {string} cvId
+ * @param {Object} cv Same shape as `GeneratedCv.cv`.
+ * @param {Object=} options Request options, see `request` in client.js.
+ * @return {Promise<GeneratedCv>}
+ * @throws {ApiError} 404 if not this user's CV, 422 if the shape is wrong.
+ */
+export function updateGeneratedCv(cvId, cv, options) {
+  return api.put(`/v1/me/generated-cvs/${cvId}`, { cv }, options);
+}

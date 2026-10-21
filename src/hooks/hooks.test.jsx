@@ -6,7 +6,7 @@ import { useAnalyzeRun } from './useAnalyzeRun.js';
 import { useMutation } from './useMutation.js';
 import { json, mockFetch, renderWithProviders } from '../test/utils.jsx';
 
-describe('validation (mirrors joblister_back/api/schemas.py)', () => {
+describe('validation (mirrors jobbed_back/api/schemas.py)', () => {
   it.each([
     ['me@example.com', null],
     ['  me@example.com  ', null],

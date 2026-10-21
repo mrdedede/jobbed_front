@@ -72,6 +72,6 @@ page ─► hook (useFetch / useMutation / useAsyncJob / ...) ─► api/endpoin
 - Every request takes the `AbortSignal` of the hook that made it; nothing sets
   state after an abort.
 - Match backend error *details* exactly (see `stopReason.js`), and keep limits
-  in step with `../joblister_back/api/routers/user.py` (`MAX_TERMS`, `MAX_CVS`).
+  in step with `../jobbed_back/api/routers/user.py` (`MAX_TERMS`, `MAX_CVS`).
 - New behaviour comes with a test next to it; a bug fix with a test that fails
   without it.
