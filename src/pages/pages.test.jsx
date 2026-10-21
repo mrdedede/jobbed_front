@@ -1,0 +1,218 @@
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import AiAnalysis from './AiAnalysis/AiAnalysis.jsx';
+import CvGeneration from './CvGeneration/CvGeneration.jsx';
+import Cvs from './Cvs/Cvs.jsx';
+import Keywords from './Keywords/Keywords.jsx';
+import { downloadBlob } from '../cv/download.js';
+import { json, mockFetch, renderWithProviders } from '../test/utils.jsx';
+
+vi.mock('../cv/download.js', () => ({ downloadBlob: vi.fn() }));
+
+describe('Keywords (TermList)', () => {
+  const setup = (routes) => {
+    const fetchMock = mockFetch({ 'GET /v1/me/keywords': json([{ id: 'k1', term: 'go' }]), ...routes });
+    renderWithProviders(<Keywords />);
+    return fetchMock;
+  };
+
+  it('adds a term, normalised like the API does', async () => {
+    const fetchMock = setup({
+      'POST /v1/me/keywords': ({ body }) => json({ id: 'k2', term: body.term }, 201),
+    });
+    const user = userEvent.setup();
+    await screen.findByText('go');
+
+    await user.type(screen.getByPlaceholderText('Add a term'), '  Python {Enter}');
+
+    expect(await screen.findByText('python')).toBeInTheDocument();
+    expect(screen.getByText('2 / 200')).toBeInTheDocument();
+    const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST');
+    expect(JSON.parse(post[1].body)).toEqual({ term: 'python' });
+  });
+
+  it('rolls the add back and explains a 409 limit', async () => {
+    setup({ 'POST /v1/me/keywords': json({ detail: 'limit reached' }, 409) });
+    const user = userEvent.setup();
+    await screen.findByText('go');
+
+    await user.type(screen.getByPlaceholderText('Add a term'), 'rust{Enter}');
+
+    expect(await screen.findByText('Limit reached (200)')).toBeInTheDocument();
+    expect(screen.queryByText('rust')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Add a term')).toHaveValue('rust');
+  });
+
+  it('refuses a duplicate without calling the API', async () => {
+    const fetchMock = setup({});
+    const user = userEvent.setup();
+    await screen.findByText('go');
+
+    await user.type(screen.getByPlaceholderText('Add a term'), 'GO{Enter}');
+
+    expect(screen.getByText('Already in the list')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(1); // the initial list only
+  });
+
+  it('removes a term, and restores it if the API fails', async () => {
+    setup({ 'DELETE /v1/me/keywords/k1': json({ detail: 'internal error' }, 500) });
+    const user = userEvent.setup();
+    await screen.findByText('go');
+
+    await user.click(screen.getByRole('button', { name: 'Remove go' }));
+
+    expect(await screen.findByText('internal error')).toBeInTheDocument(); // toast
+    expect(screen.getByText('go')).toBeInTheDocument();
+  });
+
+  it('shows a retry when the list fails to load', async () => {
+    mockFetch({ 'GET /v1/me/keywords': json({ detail: 'internal error' }, 500) });
+    renderWithProviders(<Keywords />);
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+});
+
+describe('Cvs', () => {
+  const cvs = [
+    { id: 'a', content_md: 'Active CV', is_active: true },
+    { id: 'b', content_md: 'Other CV', is_active: false },
+  ];
+
+  it('activates a CV', async () => {
+    const fetchMock = mockFetch({
+      'GET /v1/me/cvs': json(cvs),
+      'PUT /v1/me/cvs/b/activate': json({ ...cvs[1], is_active: true }),
+    });
+    renderWithProviders(<Cvs />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Activate' }));
+
+    const otherCard = screen.getByText('Other CV').closest('.mantine-Paper-root');
+    expect(within(otherCard).getByText('Active')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith('/v1/me/cvs/b/activate', expect.objectContaining({ method: 'PUT' }));
+  });
+
+  it('warns before deleting the active CV, then asks to activate another', async () => {
+    mockFetch({ 'GET /v1/me/cvs': json(cvs), 'DELETE /v1/me/cvs/a': json(null, 204) });
+    const user = userEvent.setup();
+    renderWithProviders(<Cvs />);
+    await screen.findByText('Active CV');
+
+    await user.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
+    expect(await screen.findByText(/This is your active CV/)).toBeInTheDocument();
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(screen.queryByText('Active CV')).not.toBeInTheDocument());
+    expect(screen.getByText(/Analysis needs an active CV/)).toBeInTheDocument();
+  });
+
+  it('creates a CV from the editor', async () => {
+    mockFetch({
+      'GET /v1/me/cvs': json([]),
+      'POST /v1/me/cvs': ({ body }) => json({ id: 'n', content_md: body.content_md, is_active: body.make_active }, 201),
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<Cvs />);
+    await screen.findByText('No CVs yet.');
+
+    await user.click(screen.getByRole('button', { name: 'New CV' }));
+    await user.type(within(screen.getByRole('dialog')).getByRole('textbox'), 'Backend engineer');
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /save/i }));
+
+    expect(await screen.findByText('Backend engineer')).toBeInTheDocument();
+    expect(screen.getByText('1 / 10')).toBeInTheDocument();
+  });
+});
+
+describe('AiAnalysis', () => {
+  it('runs an analysis and shows the new grades', async () => {
+    let stored = [];
+    const graded = {
+      job_id: 'j1', adequation_grade: 88, company: 'Acme', title: 'Go Dev', place: 'Paris',
+      url: 'https://x', analysed_at: '2026-10-21T08:00:00Z', depth_analysis: 'fits',
+    };
+    mockFetch({
+      'GET /v1/me/analyses/due': json({ due: 1 }),
+      'GET /v1/me/analyses': () => json(stored),
+      'POST /v1/me/analyze': () => {
+        stored = [graded];
+        return json({ analysed: 1, failed: 0, due: 1, filtered_out: 0, remaining: 0, results: [graded] });
+      },
+    });
+    renderWithProviders(<AiAnalysis />);
+    expect(await screen.findByText(/1 waiting to be graded/)).toBeInTheDocument();
+    expect(screen.getByText('No analyses match these filters.')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Start' }));
+
+    expect(await screen.findByText(/1 graded, 0 failed, 0 remaining - done/)).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Open the analysis of Go Dev at Acme' }))
+      .toBeInTheDocument();
+    expect(screen.getByText('Analysis finished')).toBeInTheDocument();
+  });
+
+  it('links to the CVs page when there is no active CV', async () => {
+    mockFetch({
+      'GET /v1/me/analyses/due': json({ due: 3 }),
+      'GET /v1/me/analyses': json([]),
+      'POST /v1/me/analyze': json({ detail: 'no active CV' }, 409),
+    });
+    renderWithProviders(<AiAnalysis />);
+    await screen.findByText(/3 waiting/);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Start' }));
+
+    expect(await screen.findByRole('link', { name: 'Go to your CVs' })).toHaveAttribute('href', '/cvs');
+  });
+});
+
+describe('CvGeneration', () => {
+  const graded = {
+    job_id: 'j1', adequation_grade: 80, company: 'Acme', title: 'Go Dev',
+    url: 'https://x', analysed_at: '2026-10-21T08:00:00Z',
+  };
+  const generated = {
+    cv_id: 'c1', job_id: 'j1', title: 'Go Dev', company: 'Acme', adequation_grade: 80, locale: 'en',
+    cv: {
+      cv_introduction: 'Hi', profile_text: 'Engineer', skills: [], experiences: [], education: [],
+    },
+  };
+
+  it('generates a CV once, then offers the downloads', async () => {
+    window.localStorage.setItem('joblister.cvProfile', JSON.stringify({ name: 'Ana', contact: '', languages: [] }));
+    let listed = [];
+    mockFetch({
+      'GET /v1/me/analyses': json([graded]),
+      'GET /v1/me/generated-cvs': () => json(listed),
+      'POST /v1/me/cvs/generate': json({ generation_id: 'g1' }, 202),
+      'GET /v1/me/cvs/generate/g1': () => {
+        listed = [generated];
+        return json({ status: 'done', cv: generated, error: null });
+      },
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<CvGeneration />);
+    await screen.findByText('No CV generated yet.');
+
+    await user.click(await screen.findByRole('button', { name: 'Generate' }));
+
+    expect(await screen.findByRole('button', { name: 'Word' })).toBeEnabled();
+    expect(screen.getAllByText('CV generated')).toHaveLength(1);
+    expect(screen.getByText('Nothing waiting. Grade more postings in AI analysis.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Word' }));
+    await waitFor(() => expect(downloadBlob).toHaveBeenCalledWith(expect.any(Blob), expect.stringMatching(/\.docx$/)));
+  });
+
+  it('puts the posting picked on the dashboard first', async () => {
+    mockFetch({
+      'GET /v1/me/analyses': json([{ ...graded, job_id: 'j0', title: 'First' }, { ...graded, title: 'Picked' }]),
+      'GET /v1/me/generated-cvs': json([]),
+    });
+    renderWithProviders(<CvGeneration />, { route: { pathname: '/cv-generation', state: { jobId: 'j1' } } });
+
+    const rows = await screen.findAllByRole('button', { name: 'Generate' });
+    expect(rows[0].closest('tr')).toHaveTextContent('Picked');
+  });
+});

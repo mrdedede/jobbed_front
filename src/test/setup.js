@@ -1,6 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+
+// findBy*/waitFor: the 1 s default is too tight on a slow build machine.
+configure({ asyncUtilTimeout: 5000 });
 
 afterEach(() => {
   cleanup();
@@ -26,3 +29,5 @@ globalThis.ResizeObserver ??= class {
   disconnect() {}
 };
 window.HTMLElement.prototype.scrollIntoView ??= () => {};
+// Mantine's autosize Textarea listens for web fonts loading.
+document.fonts ??= { addEventListener() {}, removeEventListener() {}, ready: Promise.resolve() };

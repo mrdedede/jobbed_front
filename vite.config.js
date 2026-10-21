@@ -16,6 +16,8 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: 'jsdom',
       setupFiles: './src/test/setup.js',
+      // Headroom for slow machines (the Docker build runs the tests too).
+      testTimeout: 15_000,
     },
   }
 })
