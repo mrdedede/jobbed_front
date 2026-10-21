@@ -11,7 +11,7 @@ describe('token store', () => {
     login(fakeToken());
     expect(readToken()).not.toBeNull();
 
-    window.localStorage.setItem('joblister.token', fakeToken(-10));
+    window.localStorage.setItem('jobbed.token', fakeToken(-10));
     expect(readToken()).toBeNull();
     logout();
   });
@@ -23,8 +23,8 @@ describe('token store', () => {
 
     // The other tab clears storage; this tab only gets a storage event.
     act(() => {
-      window.localStorage.removeItem('joblister.token');
-      window.dispatchEvent(new StorageEvent('storage', { key: 'joblister.token' }));
+      window.localStorage.removeItem('jobbed.token');
+      window.dispatchEvent(new StorageEvent('storage', { key: 'jobbed.token' }));
     });
 
     expect(result.current.isAuthenticated).toBe(false);

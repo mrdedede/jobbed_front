@@ -5,7 +5,7 @@ const labels = { doing: 'generating a CV', thing: 'CV generation' };
 const kind = (status, detail, extra) => toStopReason({ status, detail, ...extra }, labels).kind;
 
 describe('toStopReason', () => {
-  // The exact strings joblister_back/api/routers/user.py sends.
+  // The exact strings jobbed_back/api/routers/user.py sends.
   it.each([
     [409, 'no active CV', 'no-cv'],
     [409, 'no analysis for job', 'no-analysis'],

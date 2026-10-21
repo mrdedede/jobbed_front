@@ -1,5 +1,5 @@
 /**
- * @file Client-side credential validation. Mirrors joblister_back/api/schemas.py.
+ * @file Client-side credential validation. Mirrors jobbed_back/api/schemas.py.
  * Each validator returns an error message, or null when the value is valid.
  */
 

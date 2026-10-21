@@ -1,13 +1,13 @@
-# Joblister front end
+# Jobbed front end
 
-React 19 + Vite 8 + Mantine 9 app for the `joblister` back end
-(`../joblister_back`). Users sign up, keep keywords, a blacklist and CVs, grade
+React 19 + Vite 8 + Mantine 9 app for the `jobbed` back end
+(`../jobbed_back`). Users sign up, keep keywords, a blacklist and CVs, grade
 recent job postings with an LLM, and generate a CV tailored to a posting
 (downloaded as Word or PDF, rendered in the browser).
 
 How the code is organised: [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md).
 The API contract: the back end's `/docs` (OpenAPI) and
-`../joblister_back/docs/cv-generation.md`.
+`../jobbed_back/docs/cv-generation.md`.
 
 ## Pages
 
@@ -30,7 +30,7 @@ No CORS anywhere.
 1. Make the API reachable on your machine, e.g.
 
    ```bash
-   kubectl port-forward svc/joblister-api 8080:8080
+   kubectl port-forward svc/jobbed-api 8080:8080
    ```
 
 2. Point the proxy at it and start Vite:
@@ -62,19 +62,19 @@ built.
 
 ## Run it on minikube
 
-Prerequisites: the back end deployed (`joblister-api` Service on 8080) and the
+Prerequisites: the back end deployed (`jobbed-api` Service on 8080) and the
 ingress addon.
 
 ```bash
 minikube addons enable ingress
 
-docker build -t joblister-front:dev .        # runs lint + tests first
-minikube image load joblister-front:dev
+docker build -t jobbed-front:dev .        # runs lint + tests first
+minikube image load jobbed-front:dev
 kubectl apply -f k8s/                        # front Deployment/Service + Ingress
-kubectl rollout restart deploy/joblister-front   # after loading a new image
+kubectl rollout restart deploy/jobbed-front   # after loading a new image
 ```
 
-The Ingress (`k8s/ingress.yaml`) has no host: `/v1` goes to `joblister-api:8080`
+The Ingress (`k8s/ingress.yaml`) has no host: `/v1` goes to `jobbed-api:8080`
 and everything else to the front end. Reach it:
 
 - macOS with the docker driver: `minikube tunnel` (keep it running), then
@@ -99,8 +99,8 @@ What the deployment sets up:
 | Symptom | Cause / fix |
 |---|---|
 | Every API call fails in `npm run dev` | `VITE_PROXY_TARGET` unset or wrong, or the port-forward stopped. |
-| Pod stuck in `ErrImageNeverPull` | The image was not loaded: `minikube image load joblister-front:dev`. |
-| Old UI after a deploy | Same tag, so restart the pods: `kubectl rollout restart deploy/joblister-front`. |
+| Pod stuck in `ErrImageNeverPull` | The image was not loaded: `minikube image load jobbed-front:dev`. |
+| Old UI after a deploy | Same tag, so restart the pods: `kubectl rollout restart deploy/jobbed-front`. |
 | "Refused to ..." in the browser console | Blocked by the CSP in `security-headers.conf`; widen only the directive named. |
 | Logged out after an hour | Tokens last 1 h and cannot be refreshed; log in again. |
 | "Another analysis is still running" | A run from a reload or another tab is still going; the page reloads results after 30 s. |

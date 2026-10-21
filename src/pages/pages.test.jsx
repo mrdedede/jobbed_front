@@ -180,7 +180,7 @@ describe('CvGeneration', () => {
   };
 
   it('generates a CV once, then offers the downloads', async () => {
-    window.localStorage.setItem('joblister.cvProfile', JSON.stringify({ name: 'Ana', contact: '', languages: [] }));
+    window.localStorage.setItem('jobbed.cvProfile', JSON.stringify({ name: 'Ana', contact: '', languages: [] }));
     let listed = [];
     mockFetch({
       'GET /v1/me/analyses': json([graded]),

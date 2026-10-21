@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: joblister-front
+  name: jobbed-front
 spec:
   replicas: 1
   selector:
-    matchLabels: {app: joblister-front}
+    matchLabels: {app: jobbed-front}
   template:
     metadata:
-      labels: {app: joblister-front}
+      labels: {app: jobbed-front}
     spec:
       securityContext:
         runAsNonRoot: true
@@ -19,7 +19,7 @@ spec:
         - name: front
           # Built locally and loaded into minikube (see README); a fixed tag,
           # not :latest, so a stale image is not picked up by accident.
-          image: joblister-front:dev
+          image: jobbed-front:dev
           imagePullPolicy: Never
           ports:
             - containerPort: 8080
@@ -50,9 +50,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: joblister-front
+  name: jobbed-front
 spec:
-  selector: {app: joblister-front}
+  selector: {app: jobbed-front}
   ports:
   - port: 80
     targetPort: 8080

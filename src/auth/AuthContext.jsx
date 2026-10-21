@@ -10,7 +10,7 @@ import { useSyncExternalStore } from 'react';
 import { notifications } from '@mantine/notifications';
 import { configureClient } from '../api/client.js';
 
-const STORAGE_KEY = 'joblister.token';
+const STORAGE_KEY = 'jobbed.token';
 
 /** Fallback when localStorage throws (private window, blocked site data). */
 let memoryToken = null;

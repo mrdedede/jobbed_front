@@ -5,8 +5,8 @@
  * the tab closes.
  */
 
-const TEXT_KEY = 'joblister.cvProfile';
-const DB_NAME = 'joblister';
+const TEXT_KEY = 'jobbed.cvProfile';
+const DB_NAME = 'jobbed';
 const STORE = 'cvPhoto';
 const PHOTO_KEY = 'photo';
 
