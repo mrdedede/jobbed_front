@@ -198,11 +198,81 @@ describe('CvGeneration', () => {
     await user.click(await screen.findByRole('button', { name: 'Generate' }));
 
     expect(await screen.findByRole('button', { name: 'Word' })).toBeEnabled();
-    expect(screen.getAllByText('CV generated')).toHaveLength(1);
+    expect(screen.getAllByText('CV generated, review it before downloading')).toHaveLength(1);
     expect(screen.getByText('Nothing waiting. Grade more postings in AI analysis.')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Word' }));
     await waitFor(() => expect(downloadBlob).toHaveBeenCalledWith(expect.any(Blob), expect.stringMatching(/\.docx$/)));
+  });
+
+  it('opens the new CV for review after generating it', async () => {
+    let listed = [];
+    mockFetch({
+      'GET /v1/me/analyses': json([graded]),
+      'GET /v1/me/generated-cvs': () => json(listed),
+      'POST /v1/me/cvs/generate': json({ generation_id: 'g1' }, 202),
+      'GET /v1/me/cvs/generate/g1': () => {
+        listed = [generated];
+        return json({ status: 'done', cv: null, error: null });
+      },
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<CvGeneration />);
+
+    await user.click(await screen.findByRole('button', { name: 'Generate' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/written by AI/)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Introduction')).toHaveValue('Hi');
+  });
+
+  it('saves an edited CV and refetches the list', async () => {
+    const { CV } = await import('../cv/fixture.js');
+    let listed = [{ ...generated, cv: CV }];
+    let sent = null;
+    const fetchMock = mockFetch({
+      'GET /v1/me/analyses': json([]),
+      'GET /v1/me/generated-cvs': () => json(listed),
+      'PUT /v1/me/generated-cvs/c1': ({ body }) => {
+        sent = body.cv;
+        listed = [{ ...generated, cv: sent }];
+        return json(listed[0]);
+      },
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<CvGeneration />);
+
+    await user.click(await screen.findByRole('button', { name: 'Review / edit' }));
+    const dialog = await screen.findByRole('dialog');
+    const bullets = within(dialog).getAllByLabelText('Bullets (one per line)')[0];
+    await user.clear(bullets);
+    await user.type(bullets, 'Cut latency by 30%.{Enter}{Enter}  ');
+    await user.click(within(dialog).getByRole('button', { name: 'Remove experience 2' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(sent.experiences).toEqual([{ ...CV.experiences[0], bullets: ['Cut latency by 30%.'] }]);
+    expect(sent.skills).toEqual(CV.skills);
+    const listCalls = fetchMock.mock.calls.filter(([url, init]) =>
+      url.endsWith('/v1/me/generated-cvs') && init.method === 'GET');
+    expect(listCalls.length).toBeGreaterThan(1);
+  });
+
+  it('keeps the editor open when saving fails', async () => {
+    mockFetch({
+      'GET /v1/me/analyses': json([]),
+      'GET /v1/me/generated-cvs': json([generated]),
+      'PUT /v1/me/generated-cvs/c1': json({ detail: 'cv: bad shape' }, 422),
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<CvGeneration />);
+
+    await user.click(await screen.findByRole('button', { name: 'Review / edit' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+    expect(await within(dialog).findByText('cv: bad shape')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('puts the posting picked on the dashboard first', async () => {
