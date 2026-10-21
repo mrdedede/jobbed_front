@@ -34,7 +34,13 @@ function toastUnexpected(error) {
 export default function TermList({ title, api, max = 200 }) {
   const { data, loading, error, refetch } = useFetch((signal) => api.list({ signal }));
   // `local` holds optimistic edits; null means "show what the server sent".
+  // A new server response (a refetch) replaces them.
   const [local, setLocal] = useState(null);
+  const [localFor, setLocalFor] = useState(data);
+  if (localFor !== data) {
+    setLocalFor(data);
+    setLocal(null);
+  }
   const terms = local ?? data ?? [];
   const update = (change) => setLocal((previous) => change(previous ?? data ?? []));
 

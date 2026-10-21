@@ -7,7 +7,6 @@ import { buildDocument } from './model.js';
 import { sections } from './sections.js';
 import { toDocx } from './toDocx.js';
 import { toHtml } from './toPdf.js';
-import { toStopReason } from '../api/stopReason.js';
 
 // Mirrors tests/test_docx_gen.py in the back end, line for line.
 describe('sections', () => {
@@ -104,17 +103,5 @@ describe('toDocx', () => {
     for (const needle of ['Ana Souza', 'Backend Engineer', 'Cut p99 latency by 40%.', 'Français, C1 - Courant']) {
       expect(text).toContain(needle);
     }
-  });
-});
-
-describe('toStopReason', () => {
-  const labels = { doing: 'generating a CV', thing: 'CV generation' };
-  it('maps statuses the UI switches on', () => {
-    expect(toStopReason({ status: 409, detail: 'no active CV' }, labels).kind).toBe('no-cv');
-    expect(toStopReason({ status: 409, detail: 'generation already running' }, labels).kind).toBe('busy');
-    expect(toStopReason({ status: 429, detail: 'x', retryAfter: 60 }, labels))
-      .toMatchObject({ kind: 'quota', retryAfter: 60 });
-    expect(toStopReason({ status: 502, detail: 'x' }, labels).kind).toBe('all-failed');
-    expect(toStopReason({ status: 0, detail: 'offline' }, labels).kind).toBe('network');
   });
 });

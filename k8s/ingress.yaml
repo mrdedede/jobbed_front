@@ -3,8 +3,9 @@ kind: Ingress
 metadata:
   name: ingress-joblister-front
   annotations:
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "180"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "180"
+    # Above the client's analyze timeout (170 s, src/api/endpoints/analyses.js)
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
 spec:
   ingressClassName: nginx
   rules:

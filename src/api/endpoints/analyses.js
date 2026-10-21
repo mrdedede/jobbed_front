@@ -4,8 +4,12 @@
 
 import { api } from '../client.js';
 
-/** Grading calls to the LLM are slow; the default client timeout is too short. */
-const ANALYZE_TIMEOUT_MS = 180_000;
+/**
+ * Grading calls to the LLM are slow; the default client timeout is too short.
+ * Kept below the ingress proxy-read-timeout (k8s/ingress.yaml, 300 s) so the
+ * client gives up first, with its own error, rather than getting a 504 page.
+ */
+const ANALYZE_TIMEOUT_MS = 170_000;
 
 /**
  * @typedef {Object} Analysis

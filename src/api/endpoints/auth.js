@@ -31,5 +31,6 @@ export function signup(credentials, options) {
  * @throws {ApiError} 401 if the credentials are invalid.
  */
 export function login(credentials, options) {
-  return api.post('/v1/auth/login', credentials, options);
+  // A 401 here means wrong credentials, not an expired session.
+  return api.post('/v1/auth/login', credentials, { skipUnauthorized: true, ...options });
 }

@@ -7,10 +7,15 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
+      // The proxy appends the request path to the target.
       proxy: {
         '/v1': env.VITE_PROXY_TARGET,
-        '/healthz': env.VITE_PROXY_TARGET + '/healthz',
+        '/healthz': env.VITE_PROXY_TARGET,
       },
+    },
+    test: {
+      environment: 'jsdom',
+      setupFiles: './src/test/setup.js',
     },
   }
 })

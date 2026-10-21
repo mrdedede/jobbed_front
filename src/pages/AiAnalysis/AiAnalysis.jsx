@@ -9,6 +9,8 @@ import { useAnalyses } from '../../hooks/useAnalyses.js';
 import { useAnalyzeRun } from '../../hooks/useAnalyzeRun.js';
 import { useFetch } from '../../hooks/useFetch.js';
 
+const BUSY_REFETCH_MS = 30_000;
+
 const SINCE_OPTIONS = [
   { value: '', label: 'All time' },
   { value: '1', label: 'Last day' },
@@ -38,8 +40,19 @@ export default function AiAnalysis() {
     if (run.status === 'done') {
       notifications.show({ color: 'green', message: 'Analysis finished' });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [run.status]);
+  }, [finished, run.status, refetch, refetchDue]);
+
+  // 409 "already running" (e.g. a run left behind by a reload): the server
+  // finishes it on its own, so pick up its results a little later.
+  const busy = run.stopReason?.kind === 'busy';
+  useEffect(() => {
+    if (!busy) return undefined;
+    const timerId = setTimeout(() => {
+      refetch();
+      refetchDue();
+    }, BUSY_REFETCH_MS);
+    return () => clearTimeout(timerId);
+  }, [busy, refetch, refetchDue]);
 
   return (
     <Stack maw={1000}>

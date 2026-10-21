@@ -1,13 +1,15 @@
 import { AppShell as MantineAppShell, Burger, Group, Menu, Button, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { logout } from '../../auth/AuthContext.jsx';
 import { getMe } from '../../api/endpoints/me.js';
 import { useFetch } from '../../hooks/useFetch.js';
+import ErrorBoundary from '../ErrorBoundary.jsx';
 import NavLinks from './NavLinks.jsx';
 
 export default function AppShell() {
   const [opened, { toggle }] = useDisclosure();
+  const { pathname } = useLocation();
   const { data: me } = useFetch((signal) => getMe({ signal }));
 
   return (
@@ -40,7 +42,9 @@ export default function AppShell() {
       </MantineAppShell.Navbar>
 
       <MantineAppShell.Main>
-        <Outlet />
+        <ErrorBoundary key={pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </MantineAppShell.Main>
     </MantineAppShell>
   );

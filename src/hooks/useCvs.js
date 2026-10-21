@@ -30,7 +30,13 @@ function toError(caught) {
 export function useCvs() {
   const { data, loading, error, refetch } = useFetch((signal) => listCvs({ signal }));
   // `local` holds optimistic edits; null means "show what the server sent".
+  // A new server response (a refetch) replaces them.
   const [local, setLocal] = useState(null);
+  const [localFor, setLocalFor] = useState(data);
+  if (localFor !== data) {
+    setLocalFor(data);
+    setLocal(null);
+  }
   const cvs = local ?? data ?? [];
   const change = (fn) => setLocal((previous) => fn(previous ?? data ?? []));
 

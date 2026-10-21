@@ -7,9 +7,9 @@ import { usePolling } from './usePolling.js';
  *
  * Example (CV generation):
  *   const job = useAsyncJob(
- *       (cvId, signal) => startCvGeneration(cvId, { signal }),
- *       (started, signal) => getCvGeneration(started.id, { signal }));
- *   job.start(cvId);
+ *       (jobId, signal) => startCvGeneration(jobId, { signal }),
+ *       (started, signal) => getCvGeneration(started.generation_id, { signal }));
+ *   job.start(jobId);
  *   // job.status: 'idle' | 'starting' | 'running' | 'done' | 'failed'
  *
  * @param {function(*, AbortSignal): Promise<*>} start Creates the job from the
@@ -22,8 +22,9 @@ import { usePolling } from './usePolling.js';
  *     poll result to a status. Defaults to reading `result.status`, where any
  *     value other than 'done' or 'failed' means still running.
  * @return {{start: function(*): Promise<void>, cancel: function(): void,
- *     status: string, result: *, error: ?ApiError}} `result` is the final
- *     poll result. `error` is why the job could not start or be polled.
+ *     status: string, result: *, error: ?ApiError, errorWhilePolling: boolean}}
+ *     `result` is the final poll result. `error` is why the job could not
+ *     start or be polled; `errorWhilePolling` says which.
  *     `cancel` only stops tracking; it does not stop the work server-side.
  */
 export function useAsyncJob(
@@ -38,9 +39,11 @@ export function useAsyncJob(
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState(null);
 
+  // `key: job` keeps a previous job's result from showing for the new one.
   const polling = usePolling((signal) => poll(job, signal), {
     interval,
     enabled: job !== null,
+    key: job,
     isDone: (result) => latestGetStatus(result) !== 'running',
   });
 
@@ -71,7 +74,7 @@ export function useAsyncJob(
     [cancel, latestStart],
   );
 
-  const error = startError ?? polling.error;
+  const error = startError ?? (job !== null ? polling.error : null);
   let status = 'idle';
   if (starting) status = 'starting';
   else if (error) status = 'failed';
@@ -85,5 +88,7 @@ export function useAsyncJob(
     status,
     result: status === 'done' || status === 'failed' ? polling.data : null,
     error,
+    // Lets callers tell "could not start" from "lost track while polling".
+    errorWhilePolling: error !== null && startError === null,
   };
 }

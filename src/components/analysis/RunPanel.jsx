@@ -1,28 +1,8 @@
 import { useState } from 'react';
-import { Alert, Anchor, Button, Group, NumberInput, Paper, Progress, Select, Slider, Stack, Text, Title } from '@mantine/core';
-import { Link } from 'react-router-dom';
+import { Button, Group, NumberInput, Paper, Progress, Select, Slider, Stack, Text, Title } from '@mantine/core';
+import StopAlert from '../StopAlert.jsx';
 
 const MODELS = ['haiku', 'sonnet'];
-
-function formatDuration(seconds) {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.ceil((seconds % 3600) / 60);
-  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-}
-
-function StopAlert({ reason }) {
-  if (reason.kind === 'no-cv') {
-    return (
-      <Alert color="yellow">
-        {reason.message} <Anchor component={Link} to="/cvs">Go to your CVs</Anchor>
-      </Alert>
-    );
-  }
-  const suffix = reason.kind === 'quota' && reason.retryAfter != null
-    ? ` Resets in ${formatDuration(reason.retryAfter)}.`
-    : '';
-  return <Alert color={reason.kind === 'busy' ? 'yellow' : 'red'}>{reason.message}{suffix}</Alert>;
-}
 
 /**
  * Controls and progress for a grading run.

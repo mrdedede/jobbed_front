@@ -42,17 +42,11 @@ let unauthorizedHandler = () => {};
 let isHandlingUnauthorized = false;
 
 /**
- * Connects the client to the auth store. Call once at startup; the auth store
- * does not exist yet, and injecting it avoids a circular import.
+ * Connects the client to the auth store (auth/AuthContext.jsx does this at
+ * import); injecting it avoids a circular import.
  *
  * Example:
- *   configureClient({
- *     getToken: () => useAuthStore.getState().token,
- *     onUnauthorized: () => {
- *       useAuthStore.getState().logout();
- *       window.location.assign('/login');
- *     },
- *   });
+ *   configureClient({ getToken: readToken, onUnauthorized: logout });
  *
  * @param {{getToken?: function(): ?string, onUnauthorized?: function(): void}} handlers
  *     `getToken` returns the current Bearer token; `onUnauthorized` runs once
@@ -88,8 +82,17 @@ function parseRetryAfter(headerValue) {
 function extractErrorDetail(errorBody, fallbackMessage) {
   const message = errorBody?.detail ?? errorBody?.message;
   if (!message) return fallbackMessage;
-  // FastAPI validation errors arrive as an array of objects.
-  return typeof message === 'string' ? message : JSON.stringify(message);
+  if (typeof message === 'string') return message;
+  // FastAPI validation errors: [{loc: ['body', 'password'], msg: '...'}, ...]
+  if (Array.isArray(message)) {
+    return message
+      .map(({ loc = [], msg }) => {
+        const field = loc.filter((part) => part !== 'body').join('.');
+        return field ? `${field}: ${msg}` : msg;
+      })
+      .join('; ');
+  }
+  return JSON.stringify(message);
 }
 
 /**

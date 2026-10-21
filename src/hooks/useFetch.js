@@ -22,16 +22,20 @@ export function useFetch(fetcher, deps = []) {
 
   useEffect(() => {
     const controller = new AbortController();
+    // oxlint-disable-next-line react/set-state-in-effect -- marks the new request as loading
     setState((previous) => ({ ...previous, error: null, loading: true }));
     latestFetcher(controller.signal)
-      .then((data) => setState({ data, error: null, loading: false }))
+      .then((data) => {
+        // A response that lands after deps changed belongs to the old request.
+        if (!controller.signal.aborted) setState({ data, error: null, loading: false });
+      })
       .catch((error) => {
         if (controller.signal.aborted) return;
         setState((previous) => ({ ...previous, error, loading: false }));
       });
     return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, refetchCount]);
+    // `deps` is the caller's list, spread on purpose (like useEffect's own).
+  }, [...deps, refetchCount]); // oxlint-disable-line react/exhaustive-deps
 
   const refetch = useCallback(() => setRefetchCount((count) => count + 1), []);
   return { ...state, refetch };

@@ -7,6 +7,7 @@
  */
 
 import { useSyncExternalStore } from 'react';
+import { notifications } from '@mantine/notifications';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { configureClient } from '../api/client.js';
 
@@ -14,6 +15,10 @@ const STORAGE_KEY = 'joblister.token';
 
 /** Fallback when localStorage throws (private window, blocked site data). */
 let memoryToken = null;
+
+/** How long before expiry the user is warned. */
+const EXPIRY_WARNING_MS = 5 * 60 * 1000;
+const EXPIRY_NOTIFICATION_ID = 'session-expiry';
 
 /** @type {Set<function(): void>} Callbacks to run when the token changes. */
 const listeners = new Set();
@@ -23,6 +28,9 @@ const MAX_TIMEOUT_MS = 2 ** 31 - 1;
 
 /** @type {?number} Pending auto-logout timer. */
 let expiryTimer = null;
+
+/** @type {?number} Pending "session expires soon" timer. */
+let warningTimer = null;
 
 /**
  * Reads the `exp` claim of a JWT. The signature is not checked: the server
@@ -50,7 +58,9 @@ function getExpiryMs(token) {
 export function readToken() {
   let token;
   try {
-    token = window.localStorage.getItem(STORAGE_KEY) ?? memoryToken;
+    // Storage is the source of truth when it works, so a logout in another
+    // tab (which clears it) logs this tab out too.
+    token = window.localStorage.getItem(STORAGE_KEY);
   } catch {
     token = memoryToken;
   }
@@ -90,6 +100,14 @@ function subscribe(listener) {
   };
 }
 
+/** Another tab logged in or out: follow its token's timers. */
+function onStorage(event) {
+  if (event.key !== STORAGE_KEY) return;
+  const token = readToken();
+  if (token) scheduleAutoLogout(token);
+  else clearTimers();
+}
+
 /**
  * Saves the token received from /v1/auth/login or /v1/auth/signup.
  *
@@ -102,8 +120,24 @@ export function login(accessToken) {
 
 /** Forgets the token; protected routes then redirect to /login. */
 export function logout() {
-  clearTimeout(expiryTimer);
+  clearTimers();
   writeToken(null);
+}
+
+function clearTimers() {
+  clearTimeout(expiryTimer);
+  clearTimeout(warningTimer);
+  notifications.hide(EXPIRY_NOTIFICATION_ID);
+}
+
+function warnExpiry() {
+  notifications.show({
+    id: EXPIRY_NOTIFICATION_ID,
+    color: 'yellow',
+    title: 'Session expiring',
+    message: 'Your session ends in 5 minutes. Save your work; you will need to log in again.',
+    autoClose: false,
+  });
 }
 
 /**
@@ -113,13 +147,12 @@ export function logout() {
  * @param {string} token A JWT.
  */
 function scheduleAutoLogout(token) {
-  clearTimeout(expiryTimer);
+  clearTimers();
   const expiryMs = getExpiryMs(token);
   if (expiryMs === null) return;
-  expiryTimer = setTimeout(
-    logout,
-    Math.min(Math.max(expiryMs - Date.now(), 0), MAX_TIMEOUT_MS),
-  );
+  const delay = (ms) => Math.min(Math.max(ms, 0), MAX_TIMEOUT_MS);
+  expiryTimer = setTimeout(logout, delay(expiryMs - Date.now()));
+  warningTimer = setTimeout(warnExpiry, delay(expiryMs - EXPIRY_WARNING_MS - Date.now()));
 }
 
 // A 401 from the API means the token is missing, expired or invalid.
@@ -128,6 +161,7 @@ configureClient({ getToken: readToken, onUnauthorized: logout });
 // Page reload: resume the countdown for a token saved earlier.
 const savedToken = readToken();
 if (savedToken) scheduleAutoLogout(savedToken);
+window.addEventListener('storage', onStorage);
 
 /**
  * Hook for components that need the auth state.

@@ -17,13 +17,14 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const { run: authenticate, loading } = useMutation(isSignup ? signup : login);
 
-  const destination = location.state?.from?.pathname ?? '/';
+  const from = location.state?.from;
+  const destination = from ? `${from.pathname}${from.search ?? ''}${from.hash ?? ''}` : '/';
   if (isAuthenticated) return <Navigate to={destination} replace />;
 
   const validate = () => ({
     email: validateEmail(email),
-    // Login only needs a non-empty password, so older passwords are not rejected.
-    password: isSignup ? validatePassword(password) : (password ? null : 'Enter your password'),
+    // The backend checks the same 8-72 rule on login too.
+    password: validatePassword(password),
     confirm: isSignup && confirmPassword !== password ? 'Passwords do not match' : null,
   });
 

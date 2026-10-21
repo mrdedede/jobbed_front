@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
+import { Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { Link } from 'react-router-dom';
+import StopAlert from '../../components/StopAlert.jsx';
 import CvProfileForm from '../../components/cv/CvProfileForm.jsx';
 import { useAnalyses } from '../../hooks/useAnalyses.js';
 import { useGenerateCv } from '../../hooks/useGenerateCv.js';
@@ -11,26 +11,6 @@ import { buildDocument } from '../../cv/model.js';
 import { printPdf } from '../../cv/toPdf.js';
 
 const MIN_GRADE = 50;
-
-function formatDuration(seconds) {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.ceil((seconds % 3600) / 60);
-  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-}
-
-function StopAlert({ reason }) {
-  if (reason.kind === 'no-cv') {
-    return (
-      <Alert color="yellow">
-        {reason.message} <Anchor component={Link} to="/cvs">Go to your CVs</Anchor>
-      </Alert>
-    );
-  }
-  const suffix = reason.kind === 'quota' && reason.retryAfter != null
-    ? ` Resets in ${formatDuration(reason.retryAfter)}.`
-    : '';
-  return <Alert color={reason.kind === 'busy' ? 'yellow' : 'red'}>{reason.message}{suffix}</Alert>;
-}
 
 export default function CvGeneration() {
   const [details, setDetails] = useState({ profile: null, photo: null });
