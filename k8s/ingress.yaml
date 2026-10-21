@@ -6,6 +6,8 @@ metadata:
     # Above the client's analyze timeout (170 s, src/api/endpoints/analyses.js)
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    # Largest body is a CV (100k characters, about 400 kB worst case)
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
 spec:
   ingressClassName: nginx
   rules:

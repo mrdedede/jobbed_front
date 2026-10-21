@@ -1,7 +1,8 @@
 import { act, renderHook, screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { login, logout, readToken, RequireAuth, useAuth } from './AuthContext.jsx';
+import { login, logout, readToken, useAuth } from './AuthContext.jsx';
+import RequireAuth from './RequireAuth.jsx';
 import Login from '../pages/Login/Login.jsx';
 import { fakeToken, renderWithProviders } from '../test/utils.jsx';
 

@@ -8,7 +8,6 @@
 
 import { useSyncExternalStore } from 'react';
 import { notifications } from '@mantine/notifications';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { configureClient } from '../api/client.js';
 
 const STORAGE_KEY = 'joblister.token';
@@ -171,19 +170,4 @@ window.addEventListener('storage', onStorage);
 export function useAuth() {
   const token = useSyncExternalStore(subscribe, readToken);
   return { token, isAuthenticated: token !== null };
-}
-
-/**
- * Layout route: renders the nested routes (<Outlet />) only when a token is
- * present, otherwise redirects to /login, remembering where the user was heading.
- *
- * @return {import('react').ReactNode}
- */
-export function RequireAuth() {
-  const { isAuthenticated } = useAuth();
-  const location = useLocation();
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
-  }
-  return <Outlet />;
 }

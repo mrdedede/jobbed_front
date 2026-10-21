@@ -1,24 +1,17 @@
 import { lazy } from 'react';
 
-// One chunk per page: a visit loads only the pages it opens.
-const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard.jsx'));
-const Keywords = lazy(() => import('./pages/Keywords/Keywords.jsx'));
-const Blacklist = lazy(() => import('./pages/Blacklist/Blacklist.jsx'));
-const Cvs = lazy(() => import('./pages/Cvs/Cvs.jsx'));
-const AiAnalysis = lazy(() => import('./pages/AiAnalysis/AiAnalysis.jsx'));
-const CvGeneration = lazy(() => import('./pages/CvGeneration/CvGeneration.jsx'));
-const Account = lazy(() => import('./pages/Account/Account.jsx'));
-
+// One chunk per page: a visit loads only the pages it opens. `Page` is created
+// inline (not as a top-level const) so this module exports only data.
 export const navRoutes = [
-  { path: '/', label: 'Dashboard', element: <Dashboard /> },
-  { path: '/keywords', label: 'Keywords', element: <Keywords /> },
-  { path: '/blacklist', label: 'Blacklist', element: <Blacklist /> },
-  { path: '/cvs', label: 'CVs', element: <Cvs /> },
-  { path: '/ai-analysis', label: 'AI analysis', element: <AiAnalysis /> },
-  { path: '/cv-generation', label: 'CV generation', element: <CvGeneration /> },
+  { path: '/', label: 'Dashboard', Page: lazy(() => import('./pages/Dashboard/Dashboard.jsx')) },
+  { path: '/keywords', label: 'Keywords', Page: lazy(() => import('./pages/Keywords/Keywords.jsx')) },
+  { path: '/blacklist', label: 'Blacklist', Page: lazy(() => import('./pages/Blacklist/Blacklist.jsx')) },
+  { path: '/cvs', label: 'CVs', Page: lazy(() => import('./pages/Cvs/Cvs.jsx')) },
+  { path: '/ai-analysis', label: 'AI analysis', Page: lazy(() => import('./pages/AiAnalysis/AiAnalysis.jsx')) },
+  { path: '/cv-generation', label: 'CV generation', Page: lazy(() => import('./pages/CvGeneration/CvGeneration.jsx')) },
 ];
 
 /** Routed pages that are not in the sidebar. */
 export const otherRoutes = [
-  { path: '/account', label: 'Account', element: <Account /> },
+  { path: '/account', label: 'Account', Page: lazy(() => import('./pages/Account/Account.jsx')) },
 ];
