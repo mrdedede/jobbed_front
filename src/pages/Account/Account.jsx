@@ -7,6 +7,7 @@ import { useOutletContext } from 'react-router-dom';
 import { changePassword, deleteMe } from '../../api/endpoints/me.js';
 import QueryState from '../../components/QueryState.jsx';
 import { useMutation } from '../../hooks/useMutation.js';
+import { t } from '../../l10n.js';
 
 export default function Account() {
   const { meQuery } = useOutletContext();
@@ -21,10 +22,10 @@ export default function Account() {
   const handleChangePassword = async (event) => {
     event.preventDefault();
     const nextErrors = {
-      current: currentPassword ? null : 'Enter your current password',
+      current: currentPassword ? null : t('account_enter_current_password'),
       next: validatePassword(newPassword)
-        ?? (newPassword === currentPassword ? 'New password must differ from the current one' : null),
-      confirm: confirmPassword === newPassword ? null : 'Passwords do not match',
+        ?? (newPassword === currentPassword ? t('account_password_must_differ') : null),
+      confirm: confirmPassword === newPassword ? null : t('validation_passwords_mismatch'),
     };
     setErrors(nextErrors);
     if (Object.values(nextErrors).some(Boolean)) return;
@@ -37,7 +38,7 @@ export default function Account() {
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
-    notifications.show({ color: 'green', message: 'Password changed' });
+    notifications.show({ color: 'green', message: t('account_password_changed') });
   };
 
   const handleDelete = async () => {
@@ -49,43 +50,43 @@ export default function Account() {
 
   return (
     <Stack maw={480}>
-      <Title order={2}>Account</Title>
+      <Title order={2}>{t('account_title')}</Title>
       <QueryState loading={meQuery.loading} error={meQuery.error} hasData={meQuery.data !== null}
-        onRetry={meQuery.refetch} label="your account">
+        onRetry={meQuery.refetch} label={t('account_query_label')}>
         <Text>{meQuery.data?.email}</Text>
       </QueryState>
 
       <Paper withBorder p="md" component="form" noValidate onSubmit={handleChangePassword}>
         <Stack>
-          <Title order={4}>Change password</Title>
-          <PasswordInput label="Current password" value={currentPassword}
+          <Title order={4}>{t('account_change_password')}</Title>
+          <PasswordInput label={t('account_current_password')} value={currentPassword}
             error={errors.current ?? wrongCurrent}
             onChange={(event) => setCurrentPassword(event.currentTarget.value)} />
-          <PasswordInput label="New password" value={newPassword} error={errors.next}
+          <PasswordInput label={t('account_new_password')} value={newPassword} error={errors.next}
             onChange={(event) => setNewPassword(event.currentTarget.value)} />
-          <PasswordInput label="Confirm new password" value={confirmPassword} error={errors.confirm}
+          <PasswordInput label={t('account_confirm_new_password')} value={confirmPassword} error={errors.confirm}
             onChange={(event) => setConfirmPassword(event.currentTarget.value)} />
-          <Button type="submit" loading={changing}>Change password</Button>
+          <Button type="submit" loading={changing}>{t('account_change_password')}</Button>
         </Stack>
       </Paper>
 
       <Paper withBorder p="md">
         <Stack>
-          <Title order={4} c="red">Delete account</Title>
-          <Text size="sm">Permanently deletes your account and all of its data.</Text>
+          <Title order={4} c="red">{t('account_delete_title')}</Title>
+          <Text size="sm">{t('account_delete_description')}</Text>
           <Button color="red" variant="outline" onClick={() => setConfirmingDelete(true)}>
-            Delete account
+            {t('account_delete_title')}
           </Button>
         </Stack>
       </Paper>
 
       <Modal opened={confirmingDelete} onClose={() => setConfirmingDelete(false)}
-        title="Delete account?" centered>
+        title={t('account_delete_confirm_title')} centered>
         <Stack>
-          <Text>This cannot be undone. All your data will be erased.</Text>
+          <Text>{t('account_delete_confirm_message')}</Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setConfirmingDelete(false)}>Cancel</Button>
-            <Button color="red" loading={deleting} onClick={handleDelete}>Delete account</Button>
+            <Button variant="default" onClick={() => setConfirmingDelete(false)}>{t('common_cancel')}</Button>
+            <Button color="red" loading={deleting} onClick={handleDelete}>{t('account_delete_title')}</Button>
           </Group>
         </Stack>
       </Modal>

@@ -13,6 +13,7 @@ import { cvFilename } from '../../cv/filename.js';
 import { downloadBlob } from '../../cv/download.js';
 import { buildDocument } from '../../cv/model.js';
 import { printPdf } from '../../cv/toPdf.js';
+import { t } from '../../l10n.js';
 
 const MIN_GRADE = 50;
 
@@ -29,7 +30,7 @@ export default function CvGeneration() {
 
   useEffect(() => {
     if (gen.status === 'done') {
-      notifications.show({ color: 'green', message: 'CV generated, review it before downloading' });
+      notifications.show({ color: 'green', message: t('cv_generation_done') });
     }
   }, [gen.status]);
 
@@ -51,7 +52,7 @@ export default function CvGeneration() {
   const saveEdit = async (cv) => {
     await updateGeneratedCv(editing.cv_id, cv);
     gen.refetch();
-    notifications.show({ color: 'green', message: 'CV saved' });
+    notifications.show({ color: 'green', message: t('cv_generation_saved') });
   };
 
   // Coming from the dashboard's "Generate CV": that posting goes first.
@@ -80,15 +81,15 @@ export default function CvGeneration() {
 
   return (
     <Stack maw={1000}>
-      <Title order={2}>CV generation</Title>
+      <Title order={2}>{t('cv_generation_title')}</Title>
       <CvProfileForm onChange={(profile, photo) => setDetails({ profile, photo })} />
 
       {gen.stopReason && <StopAlert reason={gen.stopReason} />}
-      {active && <Group><Loader size="sm" /><Text size="sm">Writing your CV, this can take a minute...</Text></Group>}
+      {active && <Group><Loader size="sm" /><Text size="sm">{t('cv_generation_writing')}</Text></Group>}
 
-      <Title order={4}>Generated CVs</Title>
+      <Title order={4}>{t('cv_generation_generated_title')}</Title>
       <QueryState loading={gen.loading} error={gen.listError} hasData={gen.loaded}
-        label="generated CVs" empty={gen.cvs.length === 0 && 'No CV generated yet.'}>
+        label={t('cv_generation_generated_label')} empty={gen.cvs.length === 0 && t('cv_generation_generated_empty')}>
         <Table>
           <Table.Tbody>
             {gen.cvs.map((cv) => (
@@ -99,11 +100,11 @@ export default function CvGeneration() {
                 <Table.Td>{cv.locale}</Table.Td>
                 <Table.Td>
                   <Group gap="xs" justify="flex-end">
-                    <Button size="xs" variant="default" onClick={() => setEditing(cv)}>Review / edit</Button>
+                    <Button size="xs" variant="default" onClick={() => setEditing(cv)}>{t('cv_generation_review')}</Button>
                     <Button size="xs" variant="light" disabled={!details.profile?.name}
-                      onClick={() => download(cv, 'docx')}>Word</Button>
+                      onClick={() => download(cv, 'docx')}>{t('cv_generation_word')}</Button>
                     <Button size="xs" variant="light" disabled={!details.profile?.name}
-                      onClick={() => download(cv, 'pdf')}>PDF</Button>
+                      onClick={() => download(cv, 'pdf')}>{t('cv_generation_pdf')}</Button>
                   </Group>
                 </Table.Td>
               </Table.Tr>
@@ -112,16 +113,16 @@ export default function CvGeneration() {
         </Table>
       </QueryState>
       {gen.cvs.length > 0 && (
-        <Text size="sm" c="dimmed">AI-generated CVs can contain mistakes. Review them before downloading.</Text>
+        <Text size="sm" c="dimmed">{t('cv_generation_ai_warning')}</Text>
       )}
       {gen.cvs.length > 0 && !details.profile?.name && (
-        <Text size="sm" c="dimmed">Enter your name above to enable downloads.</Text>
+        <Text size="sm" c="dimmed">{t('cv_generation_enter_name')}</Text>
       )}
 
-      <Title order={4}>Postings without a CV (grade {MIN_GRADE}+)</Title>
+      <Title order={4}>{t('cv_generation_postings_title', { grade: MIN_GRADE })}</Title>
       <QueryState loading={analysesQuery.loading} error={analysesQuery.error}
-        hasData={analysesQuery.loaded} onRetry={analysesQuery.refetch} label="graded postings"
-        empty={eligible.length === 0 && 'Nothing waiting. Grade more postings in AI analysis.'}>
+        hasData={analysesQuery.loaded} onRetry={analysesQuery.refetch} label={t('cv_generation_postings_label')}
+        empty={eligible.length === 0 && t('cv_generation_postings_empty')}>
         <Table highlightOnHover>
           <Table.Tbody>
             {eligible.map((a) => (
@@ -132,7 +133,7 @@ export default function CvGeneration() {
                 <Table.Td>
                   <Group justify="flex-end">
                     <Button size="xs" disabled={active} onClick={() => generate(a.job_id)}>
-                      Generate
+                      {t('cv_generation_generate')}
                     </Button>
                   </Group>
                 </Table.Td>

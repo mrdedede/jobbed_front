@@ -8,6 +8,7 @@ import { useFetch } from '../../hooks/useFetch.js';
 import { navRoutes, otherRoutes } from '../../routes.jsx';
 import ErrorBoundary from '../ErrorBoundary.jsx';
 import NavLinks from './NavLinks.jsx';
+import { t } from '../../l10n.js';
 
 export default function AppShell() {
   const [opened, { toggle, close }] = useDisclosure();
@@ -15,7 +16,7 @@ export default function AppShell() {
 
   const pageLabel = [...navRoutes, ...otherRoutes].find((route) => route.path === pathname)?.label;
   useEffect(() => {
-    document.title = pageLabel ? `${pageLabel} · Jobbed` : 'Jobbed';
+    document.title = pageLabel ? t('app_page_title', { page: pageLabel }) : t('app_name');
   }, [pageLabel]);
   // Shared with pages through the outlet context (see Account), fetched once.
   const meQuery = useFetch((signal) => getMe({ signal }));
@@ -31,17 +32,17 @@ export default function AppShell() {
         <Group h="100%" px="md" justify="space-between">
           <Group>
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm"
-              aria-label={opened ? 'Close navigation' : 'Open navigation'} />
-            <Title order={3}>Jobbed</Title>
+              aria-label={opened ? t('shell_close_navigation') : t('shell_open_navigation')} />
+            <Title order={3}>{t('app_name')}</Title>
           </Group>
 
           <Menu position="bottom-end">
             <Menu.Target>
-              <Button variant="subtle">{me?.email ?? 'Account'}</Button>
+              <Button variant="subtle">{me?.email ?? t('shell_account')}</Button>
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Item component={Link} to="/account">Account</Menu.Item>
-              <Menu.Item color="red" onClick={logout}>Log out</Menu.Item>
+              <Menu.Item component={Link} to="/account">{t('shell_account')}</Menu.Item>
+              <Menu.Item color="red" onClick={logout}>{t('shell_log_out')}</Menu.Item>
             </Menu.Dropdown>
           </Menu>
         </Group>
@@ -53,7 +54,7 @@ export default function AppShell() {
 
       <MantineAppShell.Main>
         <ErrorBoundary key={pathname}>
-          <Suspense fallback={<Loader aria-label="Loading page" />}>
+          <Suspense fallback={<Loader aria-label={t('shell_loading_page')} />}>
             <Outlet context={{ meQuery }} />
           </Suspense>
         </ErrorBoundary>

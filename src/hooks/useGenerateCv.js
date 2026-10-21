@@ -6,8 +6,9 @@ import { toStopReason } from '../api/stopReason.js';
 import { useAsyncJob } from './useAsyncJob.js';
 import { useFetch } from './useFetch.js';
 import { usePolling } from './usePolling.js';
+import { t } from '../l10n.js';
 
-const LABELS = { doing: 'generating a CV', thing: 'CV generation' };
+const LABELS = { doing: t('stop_labels_generation_doing'), thing: t('stop_labels_generation_thing') };
 const POLL_INTERVAL_MS = 3000;
 /** While another generation (e.g. from a previous visit) runs, watch the list. */
 const BUSY_INTERVAL_MS = 5000;
@@ -19,11 +20,11 @@ const BUSY_INTERVAL_MS = 5000;
  */
 function stopReasonOf(job) {
   if (job.errorWhilePolling && job.error.status === 404) {
-    return { kind: 'interrupted', message: 'The generation was interrupted. Try again.', retryAfter: null };
+    return { kind: 'interrupted', message: t('stop_generation_interrupted'), retryAfter: null };
   }
   if (job.error) return toStopReason(job.error, LABELS);
   if (job.result?.status === 'failed') {
-    const { status = 500, detail = 'generation failed' } = job.result.error ?? {};
+    const { status = 500, detail = t('stop_generation_failed') } = job.result.error ?? {};
     return toStopReason({ status, detail }, LABELS);
   }
   return null;

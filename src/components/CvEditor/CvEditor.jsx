@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, Button, Checkbox, Group, Modal, Stack, Tabs, Text, Textarea, Typography } from '@mantine/core';
 import ReactMarkdown from 'react-markdown';
 import { CV_MAX_LENGTH } from '../../hooks/useCvs.js';
+import { t } from '../../l10n.js';
 
 /**
  * Modal to write a CV in Markdown, with a rendered preview tab. Mount it only
@@ -21,7 +22,7 @@ export default function CvEditor({ cv, onClose, onSave }) {
   const tooLong = draft.length > CV_MAX_LENGTH;
 
   const close = () => {
-    if (!dirty || window.confirm('Discard your unsaved changes?')) onClose();
+    if (!dirty || window.confirm(t('cv_editor_discard'))) onClose();
   };
 
   const save = async () => {
@@ -38,23 +39,23 @@ export default function CvEditor({ cv, onClose, onSave }) {
   };
 
   return (
-    <Modal opened onClose={close} size="xl" title={cv ? 'Edit CV' : 'New CV'}>
+    <Modal opened onClose={close} size="xl" title={cv ? t('cv_editor_edit_title') : t('cv_editor_new_title')}>
       <Stack>
         <Tabs defaultValue="write">
           <Tabs.List>
-            <Tabs.Tab value="write">Write</Tabs.Tab>
-            <Tabs.Tab value="preview">Preview</Tabs.Tab>
+            <Tabs.Tab value="write">{t('cv_editor_write')}</Tabs.Tab>
+            <Tabs.Tab value="preview">{t('cv_editor_preview')}</Tabs.Tab>
           </Tabs.List>
           <Tabs.Panel value="write" pt="sm">
             <Textarea autosize minRows={12} maxRows={24} autoFocus value={draft}
-              placeholder="# Your name&#10;&#10;Write your CV in Markdown"
+              placeholder={t('cv_editor_placeholder')}
               styles={{ input: { fontFamily: 'monospace' } }}
               onChange={(event) => setDraft(event.currentTarget.value)} />
           </Tabs.Panel>
           <Tabs.Panel value="preview" pt="sm">
             {draft.trim()
               ? <Typography><ReactMarkdown>{draft}</ReactMarkdown></Typography>
-              : <Text c="dimmed">Nothing to preview.</Text>}
+              : <Text c="dimmed">{t('cv_editor_nothing_to_preview')}</Text>}
           </Tabs.Panel>
         </Tabs>
 
@@ -66,11 +67,11 @@ export default function CvEditor({ cv, onClose, onSave }) {
         <Group justify="space-between">
           {cv
             ? <span />
-            : <Checkbox label="Make active" checked={makeActive}
+            : <Checkbox label={t('cv_editor_make_active')} checked={makeActive}
                 onChange={(event) => setMakeActive(event.currentTarget.checked)} />}
           <Group>
-            <Button variant="default" onClick={close}>Cancel</Button>
-            <Button loading={saving} disabled={!draft.trim() || tooLong} onClick={save}>Save</Button>
+            <Button variant="default" onClick={close}>{t('common_cancel')}</Button>
+            <Button loading={saving} disabled={!draft.trim() || tooLong} onClick={save}>{t('common_save')}</Button>
           </Group>
         </Group>
       </Stack>

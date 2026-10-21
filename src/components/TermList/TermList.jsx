@@ -3,6 +3,7 @@ import { ActionIcon, Badge, Button, Group, Paper, Stack, Text, TextInput, Title 
 import { notifications } from '@mantine/notifications';
 import { useFetch } from '../../hooks/useFetch.js';
 import QueryState from '../QueryState.jsx';
+import { t } from '../../l10n.js';
 
 const TERM_MAX_LENGTH = 100;
 let tempCounter = 0;
@@ -11,15 +12,15 @@ let tempCounter = 0;
 const normalize = (value) => value.trim().toLowerCase();
 
 function checkTerm(term, terms, ignoreId) {
-  if (!term) return 'Enter a term';
-  if (term.length > TERM_MAX_LENGTH) return `At most ${TERM_MAX_LENGTH} characters`;
-  if (terms.some((t) => t.term === term && t.id !== ignoreId)) return 'Already in the list';
+  if (!term) return t('terms_enter_term');
+  if (term.length > TERM_MAX_LENGTH) return t('terms_too_long', { max: TERM_MAX_LENGTH });
+  if (terms.some((t) => t.term === term && t.id !== ignoreId)) return t('terms_duplicate');
   return null;
 }
 
 /** Shows 409s inline (the caller does); anything else becomes a toast. */
 function toastUnexpected(error) {
-  notifications.show({ color: 'red', title: 'Request failed', message: error.detail ?? error.message });
+  notifications.show({ color: 'red', title: t('common_request_failed'), message: error.detail ?? error.message });
 }
 
 /**
@@ -61,7 +62,7 @@ export default function TermList({ title, api, max = 200 }) {
   const add = async (event) => {
     event.preventDefault();
     const term = normalize(draft);
-    const problem = atLimit ? `Limit reached (${max})` : checkTerm(term, terms);
+    const problem = atLimit ? t('terms_limit_reached', { max }) : checkTerm(term, terms);
     setAddError(problem);
     if (problem) return;
 
@@ -77,7 +78,7 @@ export default function TermList({ title, api, max = 200 }) {
     } catch (caught) {
       update((previous) => previous.filter((t) => t.id !== tempId));
       setDraft(term);
-      if (caught.status === 409) setAddError(`Limit reached (${max})`);
+      if (caught.status === 409) setAddError(t('terms_limit_reached', { max }));
       else toastUnexpected(caught);
     }
   };
@@ -97,7 +98,7 @@ export default function TermList({ title, api, max = 200 }) {
     } catch (caught) {
       if (caught.status === 404) return resync();
       update((previous) => previous.map((t) => (t.id === item.id ? item : t)));
-      if (caught.status === 409) setRowError({ id: item.id, message: 'Already in the list' });
+      if (caught.status === 409) setRowError({ id: item.id, message: t('terms_duplicate') });
       else toastUnexpected(caught);
     }
   };
@@ -127,15 +128,15 @@ export default function TermList({ title, api, max = 200 }) {
 
       <form onSubmit={add}>
         <Group align="flex-start" wrap="nowrap">
-          <TextInput flex={1} placeholder="Add a term" value={draft} error={addError}
+          <TextInput flex={1} placeholder={t('terms_add_placeholder')} value={draft} error={addError}
             disabled={atLimit} maxLength={TERM_MAX_LENGTH * 2}
             onChange={(event) => setDraft(event.currentTarget.value)} />
-          <Button type="submit" disabled={atLimit}>Add</Button>
+          <Button type="submit" disabled={atLimit}>{t('terms_add')}</Button>
         </Group>
       </form>
 
       <QueryState loading={loading} error={error} hasData={data !== null} onRetry={refetch}
-        label={title.toLowerCase()} empty={terms.length === 0 && 'Nothing here yet.'}>
+        label={title.toLowerCase()} empty={terms.length === 0 && t('terms_empty')}>
       {terms.map((item) => (
         <Paper key={item.id} withBorder p="xs" opacity={item.pending ? 0.5 : 1}>
           {editingId === item.id ? (
@@ -144,9 +145,9 @@ export default function TermList({ title, api, max = 200 }) {
                 <TextInput flex={1} autoFocus value={editDraft}
                   error={rowError?.id === item.id ? rowError.message : null}
                   onChange={(event) => setEditDraft(event.currentTarget.value)} />
-                <Button type="submit" size="xs">Save</Button>
+                <Button type="submit" size="xs">{t('common_save')}</Button>
                 <Button size="xs" variant="default"
-                  onClick={() => { setEditingId(null); setRowError(null); }}>Cancel</Button>
+                  onClick={() => { setEditingId(null); setRowError(null); }}>{t('common_cancel')}</Button>
               </Group>
             </form>
           ) : (
@@ -156,10 +157,10 @@ export default function TermList({ title, api, max = 200 }) {
                 <Group gap="xs" wrap="nowrap">
                   <Button size="xs" variant="subtle" disabled={item.pending}
                     onClick={() => { setEditingId(item.id); setEditDraft(item.term); setRowError(null); }}>
-                    Edit
+                    {t('terms_edit')}
                   </Button>
                   <ActionIcon color="red" variant="subtle" disabled={item.pending}
-                    aria-label={`Remove ${item.term}`} onClick={() => remove(item)}>
+                    aria-label={t('terms_remove', { term: item.term })} onClick={() => remove(item)}>
                     ×
                   </ActionIcon>
                 </Group>

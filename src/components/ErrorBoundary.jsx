@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import { Alert, Button, Stack, Text } from '@mantine/core';
+import { t } from '../l10n.js';
 
 /**
  * Catches render errors in a page, so one broken page does not blank the
@@ -19,11 +20,11 @@ export default class ErrorBoundary extends Component {
   render() {
     if (!this.state.error) return this.props.children;
     return (
-      <Alert color="red" title="Something went wrong on this page" role="alert">
+      <Alert color="red" title={t('error_boundary_title')} role="alert">
         <Stack gap="xs" align="flex-start">
           <Text size="sm">{this.state.error.message}</Text>
           <Button size="xs" variant="light" onClick={() => this.setState({ error: null })}>
-            Try again
+            {t('error_boundary_try_again')}
           </Button>
         </Stack>
       </Alert>

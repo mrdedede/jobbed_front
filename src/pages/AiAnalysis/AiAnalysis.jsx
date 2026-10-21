@@ -10,14 +10,15 @@ import RunPanel from '../../components/analysis/RunPanel.jsx';
 import { useAnalyses } from '../../hooks/useAnalyses.js';
 import { useAnalyzeRun } from '../../hooks/useAnalyzeRun.js';
 import { useFetch } from '../../hooks/useFetch.js';
+import { t } from '../../l10n.js';
 
 const BUSY_REFETCH_MS = 30_000;
 
 const SINCE_OPTIONS = [
-  { value: '', label: 'All time' },
-  { value: '1', label: 'Last day' },
-  { value: '7', label: 'Last 7 days' },
-  { value: '30', label: 'Last 30 days' },
+  { value: '', label: t('ai_analysis_since_all') },
+  { value: '1', label: t('ai_analysis_since_day') },
+  { value: '7', label: t('ai_analysis_since_7') },
+  { value: '30', label: t('ai_analysis_since_30') },
 ];
 
 export default function AiAnalysis() {
@@ -42,7 +43,7 @@ export default function AiAnalysis() {
     refetch();
     refetchDue();
     if (run.status === 'done') {
-      notifications.show({ color: 'green', message: 'Analysis finished' });
+      notifications.show({ color: 'green', message: t('ai_analysis_finished') });
     }
   }, [finished, run.status, refetch, refetchDue]);
 
@@ -60,25 +61,25 @@ export default function AiAnalysis() {
 
   return (
     <Stack maw={1000}>
-      <Title order={2}>AI analysis</Title>
+      <Title order={2}>{t('ai_analysis_title')}</Title>
       <RunPanel run={run} windowDays={windowDays} onWindowDaysChange={setWindowDays} due={due?.due} />
       {dueError && (
         <Text c="red" size="sm" role="alert">
-          Could not count waiting postings: {dueError.detail ?? dueError.message}
+          {t('ai_analysis_due_error', { error: dueError.detail ?? dueError.message })}
         </Text>
       )}
 
       <Group align="flex-end">
         <div style={{ flex: 1, maxWidth: 320 }}>
-          <Text size="sm" id="min-grade-label">Minimum grade: {minGrade}</Text>
+          <Text size="sm" id="min-grade-label">{t('ai_analysis_min_grade', { grade: minGrade })}</Text>
           <Slider min={0} max={100} value={minGrade} onChange={setMinGrade}
             thumbProps={{ 'aria-labelledby': 'min-grade-label' }} />
         </div>
-        <Select label="Analysed" data={SINCE_OPTIONS} value={sinceDays} allowDeselect={false}
+        <Select label={t('ai_analysis_since_label')} data={SINCE_OPTIONS} value={sinceDays} allowDeselect={false}
           onChange={setSinceDays} w={160} />
       </Group>
 
-      <QueryState loading={loading} error={error} hasData={loaded} onRetry={refetch} label="analyses">
+      <QueryState loading={loading} error={error} hasData={loaded} onRetry={refetch} label={t('ai_analysis_query_label')}>
         <GradeCharts analyses={analyses} />
         <AnalysisTable analyses={analyses} />
       </QueryState>

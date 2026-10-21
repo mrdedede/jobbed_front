@@ -4,6 +4,7 @@ import { notifications } from '@mantine/notifications';
 import CvEditor from '../../components/CvEditor/CvEditor.jsx';
 import QueryState from '../../components/QueryState.jsx';
 import { MAX_CVS, useCvs } from '../../hooks/useCvs.js';
+import { t } from '../../l10n.js';
 
 const PREVIEW_CHARS = 200;
 
@@ -19,7 +20,7 @@ export default function Cvs() {
   const [deleting, setDeleting] = useState(null);
 
   const notifyFailure = (caught) =>
-    notifications.show({ color: 'red', title: 'Request failed', message: caught.message });
+    notifications.show({ color: 'red', title: t('common_request_failed'), message: caught.message });
 
   const handleActivate = (cv) => activate(cv.id).catch(notifyFailure);
 
@@ -34,34 +35,34 @@ export default function Cvs() {
   return (
     <Stack maw={720}>
       <Group justify="space-between">
-        <Title order={2}>CVs</Title>
+        <Title order={2}>{t('cvs_title')}</Title>
         <Group>
           <Badge variant="light" color={atLimit ? 'red' : 'violet'}>{cvs.length} / {MAX_CVS}</Badge>
-          <Button disabled={atLimit} onClick={() => setEditor('new')}>New CV</Button>
+          <Button disabled={atLimit} onClick={() => setEditor('new')}>{t('cvs_new')}</Button>
         </Group>
       </Group>
 
       {cvs.length > 0 && !cvs.some((cv) => cv.is_active) && (
-        <Alert color="yellow">Analysis needs an active CV. Activate one below.</Alert>
+        <Alert color="yellow">{t('cvs_no_active')}</Alert>
       )}
       <QueryState loading={loading} error={error} hasData={loaded}
-        onRetry={refetch} label="CVs" empty={cvs.length === 0 && 'No CVs yet.'}>
+        onRetry={refetch} label={t('cvs_query_label')} empty={cvs.length === 0 && t('cvs_empty')}>
       {cvs.map((cv) => (
         <Paper key={cv.id} withBorder p="md" opacity={cv.pending ? 0.5 : 1}>
           <Stack gap="xs">
             <Group justify="space-between">
               {cv.is_active
-                ? <Badge color="green">Active</Badge>
+                ? <Badge color="green">{t('cvs_active')}</Badge>
                 : <Button size="xs" variant="light" disabled={cv.pending}
-                    onClick={() => handleActivate(cv)}>Activate</Button>}
-              <Text size="xs" c="dimmed">{cv.content_md.length} characters</Text>
+                    onClick={() => handleActivate(cv)}>{t('cvs_activate')}</Button>}
+              <Text size="xs" c="dimmed">{t('cvs_characters', { count: cv.content_md.length })}</Text>
             </Group>
             <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{preview(cv.content_md)}</Text>
             <Group justify="flex-end" gap="xs">
               <Button size="xs" variant="subtle" disabled={cv.pending}
-                onClick={() => setEditor(cv)}>Edit</Button>
+                onClick={() => setEditor(cv)}>{t('common_edit')}</Button>
               <Button size="xs" variant="subtle" color="red" disabled={cv.pending}
-                onClick={() => setDeleting(cv)}>Delete</Button>
+                onClick={() => setDeleting(cv)}>{t('common_delete')}</Button>
             </Group>
           </Stack>
         </Paper>
@@ -78,15 +79,15 @@ export default function Cvs() {
         />
       )}
 
-      <Modal opened={deleting !== null} onClose={() => setDeleting(null)} title="Delete CV?" centered>
+      <Modal opened={deleting !== null} onClose={() => setDeleting(null)} title={t('cvs_delete_title')} centered>
         <Stack>
           <Text>
-            This cannot be undone.
-            {deleting?.is_active && ' This is your active CV: analysis will have no CV until you activate another.'}
+            {t('cvs_delete_message')}
+            {deleting?.is_active && t('cvs_delete_active_warning')}
           </Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={() => setDeleting(null)}>Cancel</Button>
-            <Button color="red" onClick={handleDelete}>Delete</Button>
+            <Button variant="default" onClick={() => setDeleting(null)}>{t('common_cancel')}</Button>
+            <Button color="red" onClick={handleDelete}>{t('common_delete')}</Button>
           </Group>
         </Stack>
       </Modal>

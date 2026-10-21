@@ -5,6 +5,7 @@ import { notifications } from '@mantine/notifications';
 import {
   downscalePhoto, loadPhoto, loadProfile, saveProfile, savePhoto,
 } from '../../cv/profileStore.js';
+import { t } from '../../l10n.js';
 
 /**
  * The details only the user knows. Everything here stays in this browser.
@@ -59,26 +60,25 @@ export default function CvProfileForm({ onChange }) {
   return (
     <Paper withBorder p="md">
       <Stack>
-        <Title order={4}>Your CV details</Title>
+        <Title order={4}>{t('cv_profile_title')}</Title>
         <Text size="sm" c="dimmed">
-          Saved in this browser only. The photo is never uploaded; it is only used
-          when you download the PDF.
+          {t('cv_profile_storage_note')}
         </Text>
         <Group align="flex-start" grow>
-          <TextInput label="Name" value={profile.name}
+          <TextInput label={t('cv_profile_name')} value={profile.name}
             onChange={(e) => update({ name: e.currentTarget.value })} />
-          <TextInput label="Contact line" placeholder="email | phone | city"
+          <TextInput label={t('cv_profile_contact')} placeholder={t('cv_profile_contact_placeholder')}
             value={profile.contact} onChange={(e) => update({ contact: e.currentTarget.value })} />
         </Group>
-        <Textarea label="Languages, one per line" autosize minRows={2}
-          description="Locale IDs translate with the CV, e.g. {language_fr}, C1 - {LEVEL_FLUENT}"
+        <Textarea label={t('cv_profile_languages')} autosize minRows={2}
+          description={t('cv_profile_languages_hint')}
           value={profile.languages.join('\n')}
           onChange={(e) => update({ languages: e.currentTarget.value.split('\n') })} />
         <Group align="flex-end">
-          <FileInput label="Photo (PDF only)" accept="image/*" clearable w={260}
-            value={file} onChange={pick} placeholder={photo ? 'Replace photo' : 'Choose an image'} />
-          {photoUrl && <Image src={photoUrl} w={56} h={56} radius="xl" fit="cover" alt="Your CV photo" />}
-          {photo && <Button variant="subtle" color="red" onClick={() => pick(null)}>Remove</Button>}
+          <FileInput label={t('cv_profile_photo')} accept="image/*" clearable w={260}
+            value={file} onChange={pick} placeholder={photo ? t('cv_profile_replace_photo') : t('cv_profile_choose_photo')} />
+          {photoUrl && <Image src={photoUrl} w={56} h={56} radius="xl" fit="cover" alt={t('cv_profile_photo_alt')} />}
+          {photo && <Button variant="subtle" color="red" onClick={() => pick(null)}>{t('cv_profile_remove_photo')}</Button>}
         </Group>
       </Stack>
     </Paper>

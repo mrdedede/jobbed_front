@@ -1,3 +1,4 @@
+import { t } from '../l10n.js';
 /**
  * The user's own CV details, kept in this browser only: text in localStorage,
  * the photo in IndexedDB (localStorage is ~5 MB and strings only). Every access
@@ -99,7 +100,7 @@ export async function downscalePhoto(file, maxSide = 400) {
   canvas.height = Math.round(bitmap.height * scale);
   canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Could not read the image'))),
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error(t('cv_profile_photo_unreadable')))),
       'image/jpeg', 0.85);
   });
 }

@@ -9,6 +9,7 @@
 import { useSyncExternalStore } from 'react';
 import { notifications } from '@mantine/notifications';
 import { configureClient } from '../api/client.js';
+import { t } from '../l10n.js';
 
 const STORAGE_KEY = 'jobbed.token';
 
@@ -133,8 +134,8 @@ function warnExpiry() {
   notifications.show({
     id: EXPIRY_NOTIFICATION_ID,
     color: 'yellow',
-    title: 'Session expiring',
-    message: 'Your session ends in 5 minutes. Save your work; you will need to log in again.',
+    title: t('session_expiring_title'),
+    message: t('session_expiring_message'),
     autoClose: false,
   });
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useFetch } from './useFetch.js';
 import { activateCv, createCv, listCvs, removeCv, updateCv } from '../api/endpoints/cvs.js';
+import { t } from '../l10n.js';
 
 export const MAX_CVS = 10;
 export const CV_MAX_LENGTH = 100_000;
@@ -47,14 +48,14 @@ export function useCvs() {
 
   const validate = (markdown) => {
     const text = markdown.trim();
-    if (!text) throw new Error('A CV cannot be empty');
-    if (text.length > CV_MAX_LENGTH) throw new Error(`At most ${CV_MAX_LENGTH} characters`);
+    if (!text) throw new Error(t('cvs_error_empty'));
+    if (text.length > CV_MAX_LENGTH) throw new Error(t('cvs_error_too_long', { max: CV_MAX_LENGTH }));
     return text;
   };
 
   const create = async (markdown, makeActive) => {
     const text = validate(markdown);
-    if (cvs.length >= MAX_CVS) throw new Error(`CV limit reached (${MAX_CVS})`);
+    if (cvs.length >= MAX_CVS) throw new Error(t('cvs_error_limit', { max: MAX_CVS }));
 
     const tempId = `tmp-${++tempCounter}`;
     const previousActiveId = cvs.find((cv) => cv.is_active)?.id;
