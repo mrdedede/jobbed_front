@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import StopAlert from '../../components/StopAlert.jsx';
@@ -22,10 +23,14 @@ export default function CvGeneration() {
     if (gen.status === 'done') notifications.show({ color: 'green', message: 'CV generated' });
   }, [gen.status]);
 
+  // Coming from the dashboard's "Generate CV": that posting goes first.
+  const selectedJobId = useLocation().state?.jobId;
   const eligible = useMemo(() => {
     const done = new Set(gen.cvs.map((cv) => cv.job_id));
-    return analyses.filter((a) => !done.has(a.job_id));
-  }, [analyses, gen.cvs]);
+    const waiting = analyses.filter((a) => !done.has(a.job_id));
+    const selected = waiting.filter((a) => a.job_id === selectedJobId);
+    return [...selected, ...waiting.filter((a) => a.job_id !== selectedJobId)];
+  }, [analyses, gen.cvs, selectedJobId]);
 
   const download = async (cv, kind) => {
     try {
@@ -85,7 +90,7 @@ export default function CvGeneration() {
         <Table highlightOnHover>
           <Table.Tbody>
             {eligible.map((a) => (
-              <Table.Tr key={a.job_id}>
+              <Table.Tr key={a.job_id} bg={a.job_id === selectedJobId ? 'var(--mantine-primary-color-light)' : undefined}>
                 <Table.Td><Badge>{a.adequation_grade}</Badge></Table.Td>
                 <Table.Td>{a.company}</Table.Td>
                 <Table.Td>{a.title}</Table.Td>
