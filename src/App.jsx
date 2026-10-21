@@ -1,10 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { RequireAuth } from './auth/AuthContext.jsx';
 import AppShell from './components/layout/AppShell.jsx';
-import Account from './pages/Account/Account.jsx';
 import Login from './pages/Login/Login.jsx';
 import NotFound from './pages/NotFound/NotFound.jsx';
-import { navRoutes } from './routes.jsx';
+import { navRoutes, otherRoutes } from './routes.jsx';
 
 export default function App() {
   return (
@@ -14,10 +13,9 @@ export default function App() {
 
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
-            {navRoutes.map((route) => (
+            {[...navRoutes, ...otherRoutes].map((route) => (
               <Route key={route.path} path={route.path} element={route.element} />
             ))}
-            <Route path="/account" element={<Account />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Route>

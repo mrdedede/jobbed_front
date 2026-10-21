@@ -2,7 +2,8 @@ import { NavLink } from '@mantine/core';
 import { NavLink as RouterNavLink, useLocation } from 'react-router-dom';
 import { navRoutes } from '../../routes.jsx';
 
-export default function NavLinks() {
+/** @param {{onNavigate?: function(): void}} props Called after a link is picked. */
+export default function NavLinks({ onNavigate }) {
   const { pathname } = useLocation();
 
   return (
@@ -14,6 +15,7 @@ export default function NavLinks() {
           to={route.path}
           label={route.label}
           active={pathname === route.path}
+          onClick={onNavigate}
         />
       ))}
     </>

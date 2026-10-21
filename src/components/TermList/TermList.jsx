@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ActionIcon, Badge, Button, Group, Loader, Paper, Stack, Text, TextInput, Title } from '@mantine/core';
+import { ActionIcon, Badge, Button, Group, Paper, Stack, Text, TextInput, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useFetch } from '../../hooks/useFetch.js';
+import QueryState from '../QueryState.jsx';
 
 const TERM_MAX_LENGTH = 100;
 let tempCounter = 0;
@@ -117,11 +118,6 @@ export default function TermList({ title, api, max = 200 }) {
     }
   };
 
-  if (loading && data === null) return <Loader />;
-  if (error && data === null) {
-    return <Button color="red" variant="light" onClick={refetch}>Failed to load, retry</Button>;
-  }
-
   return (
     <Stack maw={520}>
       <Group justify="space-between">
@@ -138,7 +134,8 @@ export default function TermList({ title, api, max = 200 }) {
         </Group>
       </form>
 
-      {terms.length === 0 && <Text c="dimmed">Nothing here yet.</Text>}
+      <QueryState loading={loading} error={error} hasData={data !== null} onRetry={refetch}
+        label={title.toLowerCase()} empty={terms.length === 0 && 'Nothing here yet.'}>
       {terms.map((item) => (
         <Paper key={item.id} withBorder p="xs" opacity={item.pending ? 0.5 : 1}>
           {editingId === item.id ? (
@@ -172,6 +169,7 @@ export default function TermList({ title, api, max = 200 }) {
           )}
         </Paper>
       ))}
+      </QueryState>
     </Stack>
   );
 }

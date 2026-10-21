@@ -40,7 +40,10 @@ export default function GradeCharts({ analyses }) {
             yAxisProps={{ domain: [0, 100] }} />
         </Stack>
       </Group>
-      <Text size="xs" c="dimmed">Based on the {analyses.length} analyses currently loaded (max 200).</Text>
+      <Text size="xs" c="dimmed">
+        Based on the {analyses.length} analyses currently loaded (max 200). Grades:{' '}
+        {histogram.map(({ range, count }) => `${range}: ${count}`).join(', ')}.
+      </Text>
     </Stack>
   );
 }

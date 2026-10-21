@@ -25,9 +25,11 @@ export default function RunPanel({ run, windowDays, onWindowDaysChange, due }) {
       <Stack>
         <Title order={4}>Run analysis</Title>
         <div>
-          <Text size="sm">Postings scraped in the last {windowDays} day{windowDays > 1 ? 's' : ''}
+          <Text size="sm" id="window-days-label">
+            Postings scraped in the last {windowDays} day{windowDays > 1 ? 's' : ''}
             {due != null && ` (${due} waiting to be graded)`}</Text>
-          <Slider min={1} max={30} value={windowDays} onChange={onWindowDaysChange} disabled={active} />
+          <Slider min={1} max={30} value={windowDays} onChange={onWindowDaysChange} disabled={active}
+            thumbProps={{ 'aria-labelledby': 'window-days-label' }} />
         </div>
         <Group>
           <NumberInput label="Batch size" min={1} max={50} value={limit} w={120} disabled={active}

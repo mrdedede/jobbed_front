@@ -19,7 +19,14 @@ const memory = { profile: EMPTY, photo: null };
 export function loadProfile() {
   try {
     const stored = JSON.parse(localStorage.getItem(TEXT_KEY));
-    return stored ? { ...EMPTY, ...stored } : memory.profile;
+    if (!stored || typeof stored !== 'object') return memory.profile;
+    // Hand-edited or older data must not crash the form.
+    const text = (value) => (typeof value === 'string' ? value : '');
+    return {
+      name: text(stored.name),
+      contact: text(stored.contact),
+      languages: Array.isArray(stored.languages) ? stored.languages.map(text) : [],
+    };
   } catch {
     return memory.profile;
   }

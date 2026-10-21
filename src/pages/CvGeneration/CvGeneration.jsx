@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import QueryState from '../../components/QueryState.jsx';
 import StopAlert from '../../components/StopAlert.jsx';
 import CvProfileForm from '../../components/cv/CvProfileForm.jsx';
 import { useAnalyses } from '../../hooks/useAnalyses.js';
@@ -16,7 +17,8 @@ const MIN_GRADE = 50;
 export default function CvGeneration() {
   const [details, setDetails] = useState({ profile: null, photo: null });
   const gen = useGenerateCv();
-  const { analyses, loading: loadingAnalyses } = useAnalyses({ minGrade: MIN_GRADE });
+  const analysesQuery = useAnalyses({ minGrade: MIN_GRADE });
+  const { analyses } = analysesQuery;
   const active = gen.status === 'starting' || gen.status === 'running';
 
   useEffect(() => {
@@ -56,8 +58,8 @@ export default function CvGeneration() {
       {active && <Group><Loader size="sm" /><Text size="sm">Writing your CV, this can take a minute...</Text></Group>}
 
       <Title order={4}>Generated CVs</Title>
-      {gen.listError && <Text c="red">Failed to load: {gen.listError.detail ?? gen.listError.message}</Text>}
-      {gen.cvs.length === 0 ? <Text c="dimmed">No CV generated yet.</Text> : (
+      <QueryState loading={gen.loading} error={gen.listError} hasData={gen.loaded}
+        label="generated CVs" empty={gen.cvs.length === 0 && 'No CV generated yet.'}>
         <Table>
           <Table.Tbody>
             {gen.cvs.map((cv) => (
@@ -78,15 +80,15 @@ export default function CvGeneration() {
             ))}
           </Table.Tbody>
         </Table>
-      )}
+      </QueryState>
       {gen.cvs.length > 0 && !details.profile?.name && (
         <Text size="sm" c="dimmed">Enter your name above to enable downloads.</Text>
       )}
 
       <Title order={4}>Postings without a CV (grade {MIN_GRADE}+)</Title>
-      {loadingAnalyses && eligible.length === 0 ? <Loader /> : eligible.length === 0 ? (
-        <Text c="dimmed">Nothing waiting. Grade more postings in AI analysis.</Text>
-      ) : (
+      <QueryState loading={analysesQuery.loading} error={analysesQuery.error}
+        hasData={analysesQuery.loaded} onRetry={analysesQuery.refetch} label="graded postings"
+        empty={eligible.length === 0 && 'Nothing waiting. Grade more postings in AI analysis.'}>
         <Table highlightOnHover>
           <Table.Tbody>
             {eligible.map((a) => (
@@ -105,7 +107,7 @@ export default function CvGeneration() {
             ))}
           </Table.Tbody>
         </Table>
-      )}
+      </QueryState>
     </Stack>
   );
 }

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Group, Loader, Select, Slider, Stack, Text, Title } from '@mantine/core';
+import { Group, Select, Slider, Stack, Text, Title } from '@mantine/core';
+import { useDebouncedValue } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { getDueCount } from '../../api/endpoints/analyses.js';
+import QueryState from '../../components/QueryState.jsx';
 import AnalysisTable from '../../components/analysis/AnalysisTable.jsx';
 import GradeCharts from '../../components/analysis/GradeCharts.jsx';
 import RunPanel from '../../components/analysis/RunPanel.jsx';
@@ -23,13 +25,15 @@ export default function AiAnalysis() {
   const [minGrade, setMinGrade] = useState(0);
   const [sinceDays, setSinceDays] = useState('');
   const run = useAnalyzeRun();
-  const { analyses, loading, error, refetch } = useAnalyses({
+  const { analyses, loaded, loading, error, refetch } = useAnalyses({
     minGrade,
     sinceDays: sinceDays ? Number(sinceDays) : undefined,
   });
-  const { data: due, refetch: refetchDue } = useFetch(
-    (signal) => getDueCount(windowDays, { signal }),
-    [windowDays],
+  // Debounced: dragging the slider would otherwise send one request per step.
+  const [debouncedWindowDays] = useDebouncedValue(windowDays, 300);
+  const { data: due, error: dueError, refetch: refetchDue } = useFetch(
+    (signal) => getDueCount(debouncedWindowDays, { signal }),
+    [debouncedWindowDays],
   );
 
   const finished = ['done', 'stopped', 'failed'].includes(run.status);
@@ -58,23 +62,26 @@ export default function AiAnalysis() {
     <Stack maw={1000}>
       <Title order={2}>AI analysis</Title>
       <RunPanel run={run} windowDays={windowDays} onWindowDaysChange={setWindowDays} due={due?.due} />
+      {dueError && (
+        <Text c="red" size="sm" role="alert">
+          Could not count waiting postings: {dueError.detail ?? dueError.message}
+        </Text>
+      )}
 
       <Group align="flex-end">
         <div style={{ flex: 1, maxWidth: 320 }}>
-          <Text size="sm">Minimum grade: {minGrade}</Text>
-          <Slider min={0} max={100} value={minGrade} onChange={setMinGrade} />
+          <Text size="sm" id="min-grade-label">Minimum grade: {minGrade}</Text>
+          <Slider min={0} max={100} value={minGrade} onChange={setMinGrade}
+            thumbProps={{ 'aria-labelledby': 'min-grade-label' }} />
         </div>
         <Select label="Analysed" data={SINCE_OPTIONS} value={sinceDays} allowDeselect={false}
           onChange={setSinceDays} w={160} />
       </Group>
 
-      {error && <Text c="red">Failed to load analyses: {error.detail ?? error.message}</Text>}
-      {loading && analyses.length === 0 ? <Loader /> : (
-        <>
-          <GradeCharts analyses={analyses} />
-          <AnalysisTable analyses={analyses} />
-        </>
-      )}
+      <QueryState loading={loading} error={error} hasData={loaded} onRetry={refetch} label="analyses">
+        <GradeCharts analyses={analyses} />
+        <AnalysisTable analyses={analyses} />
+      </QueryState>
     </Stack>
   );
 }

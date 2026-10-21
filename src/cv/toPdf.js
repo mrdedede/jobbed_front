@@ -32,6 +32,9 @@ ${doc.sections.map((s) => `<h2>${escape(s.title)}</h2>${s.lines.map(line).join('
 </body></html>`;
 }
 
+/** Fallback cleanup, for browsers that never fire `afterprint` on the frame. */
+const CLEANUP_FALLBACK_MS = 60_000;
+
 /**
  * Opens the browser's print dialog on the CV; "Save as PDF" there makes the file.
  * No PDF library, so nothing to keep in step with the Word layout beyond text.
@@ -47,12 +50,16 @@ export function printPdf(doc, photo) {
   document.body.appendChild(frame);
 
   return new Promise((resolve) => {
+    let cleaned = false;
     const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
       frame.remove();
       if (photoUrl) URL.revokeObjectURL(photoUrl);
     };
     frame.onload = () => {
       frame.contentWindow.addEventListener('afterprint', cleanup);
+      setTimeout(cleanup, CLEANUP_FALLBACK_MS);
       frame.contentWindow.focus();
       frame.contentWindow.print();
       resolve();

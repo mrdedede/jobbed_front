@@ -21,7 +21,7 @@ function toError(caught) {
  * is fit to display; the caller decides where to show it.
  *
  * @return {{cvs: Array<{id: string, content_md: string, is_active: boolean,
- *     pending?: boolean}>, loading: boolean, error: ?ApiError,
+ *     pending?: boolean}>, loaded: boolean, loading: boolean, error: ?ApiError,
  *     refetch: function(): void, create: function(string, boolean): Promise<void>,
  *     update: function(string, string): Promise<void>,
  *     activate: function(string): Promise<void>,
@@ -119,5 +119,5 @@ export function useCvs() {
     }
   };
 
-  return { cvs, loading, error, refetch, create, update, activate, remove };
+  return { cvs, loaded: data !== null, loading, error, refetch, create, update, activate, remove };
 }

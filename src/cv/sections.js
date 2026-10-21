@@ -1,6 +1,6 @@
 /**
  * The generated CV as lines of text. Port of `sections()` in the back end's
- * cv_generator/docx_gen.py (kept in step by test/sections.test.js).
+ * cv_generator/docx_gen.py (kept in step by src/cv/cv.test.js).
  *
  * A line is `[bold, rest]`: the part set in bold, then the rest.
  */

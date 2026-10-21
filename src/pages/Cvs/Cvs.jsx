@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Alert, Badge, Button, Group, Loader, Modal, Paper, Stack, Text, Title } from '@mantine/core';
+import { Alert, Badge, Button, Group, Modal, Paper, Stack, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import CvEditor from '../../components/CvEditor/CvEditor.jsx';
+import QueryState from '../../components/QueryState.jsx';
 import { MAX_CVS, useCvs } from '../../hooks/useCvs.js';
 
 const PREVIEW_CHARS = 200;
@@ -12,7 +13,7 @@ function preview(markdown) {
 }
 
 export default function Cvs() {
-  const { cvs, loading, error, refetch, create, update, activate, remove } = useCvs();
+  const { cvs, loaded, loading, error, refetch, create, update, activate, remove } = useCvs();
   // `editor`: null (closed), 'new', or the CV being edited.
   const [editor, setEditor] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -27,11 +28,6 @@ export default function Cvs() {
     setDeleting(null);
     remove(cv.id).catch(notifyFailure);
   };
-
-  if (loading && cvs.length === 0) return <Loader />;
-  if (error && cvs.length === 0) {
-    return <Button color="red" variant="light" onClick={refetch}>Failed to load, retry</Button>;
-  }
 
   const atLimit = cvs.length >= MAX_CVS;
 
@@ -48,8 +44,8 @@ export default function Cvs() {
       {cvs.length > 0 && !cvs.some((cv) => cv.is_active) && (
         <Alert color="yellow">Analysis needs an active CV. Activate one below.</Alert>
       )}
-      {cvs.length === 0 && <Text c="dimmed">No CVs yet.</Text>}
-
+      <QueryState loading={loading} error={error} hasData={loaded}
+        onRetry={refetch} label="CVs" empty={cvs.length === 0 && 'No CVs yet.'}>
       {cvs.map((cv) => (
         <Paper key={cv.id} withBorder p="md" opacity={cv.pending ? 0.5 : 1}>
           <Stack gap="xs">
@@ -70,6 +66,7 @@ export default function Cvs() {
           </Stack>
         </Paper>
       ))}
+      </QueryState>
 
       {editor && (
         <CvEditor

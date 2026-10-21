@@ -3,12 +3,13 @@ import { Button, Group, Modal, Paper, PasswordInput, Stack, Text, Title } from '
 import { notifications } from '@mantine/notifications';
 import { logout } from '../../auth/AuthContext.jsx';
 import { validatePassword } from '../../auth/validation.js';
-import { changePassword, deleteMe, getMe } from '../../api/endpoints/me.js';
-import { useFetch } from '../../hooks/useFetch.js';
+import { useOutletContext } from 'react-router-dom';
+import { changePassword, deleteMe } from '../../api/endpoints/me.js';
+import QueryState from '../../components/QueryState.jsx';
 import { useMutation } from '../../hooks/useMutation.js';
 
 export default function Account() {
-  const { data: me } = useFetch((signal) => getMe({ signal }));
+  const { meQuery } = useOutletContext();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -49,7 +50,10 @@ export default function Account() {
   return (
     <Stack maw={480}>
       <Title order={2}>Account</Title>
-      <Text>{me?.email}</Text>
+      <QueryState loading={meQuery.loading} error={meQuery.error} hasData={meQuery.data !== null}
+        onRetry={meQuery.refetch} label="your account">
+        <Text>{meQuery.data?.email}</Text>
+      </QueryState>
 
       <Paper withBorder p="md" component="form" noValidate onSubmit={handleChangePassword}>
         <Stack>

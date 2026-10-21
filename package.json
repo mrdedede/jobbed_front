@@ -16,7 +16,6 @@
     "@mantine/hooks": "^9.6.1",
     "@mantine/notifications": "^9.6.1",
     "docx": "^9.13.0",
-    "mammoth": "^1.12.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-markdown": "^10.1.0",

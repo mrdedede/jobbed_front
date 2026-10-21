@@ -7,7 +7,7 @@ import { useFetch } from './useFetch.js';
  * dragging a slider does not send a request per tick.
  *
  * @param {{minGrade?: number, sinceDays?: number, limit?: number}=} filters
- * @return {{analyses: Analysis[], loading: boolean, error: ?ApiError,
+ * @return {{analyses: Analysis[], loaded: boolean, loading: boolean, error: ?ApiError,
  *     refetch: function(): void}}
  */
 export function useAnalyses({ minGrade = 0, sinceDays, limit = 200 } = {}) {
@@ -16,5 +16,5 @@ export function useAnalyses({ minGrade = 0, sinceDays, limit = 200 } = {}) {
     (signal) => listAnalyses({ limit, minGrade: debouncedMinGrade, sinceDays }, { signal }),
     [debouncedMinGrade, sinceDays, limit],
   );
-  return { analyses: data ?? [], loading, error, refetch };
+  return { analyses: data ?? [], loaded: data !== null, loading, error, refetch };
 }

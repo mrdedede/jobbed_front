@@ -16,7 +16,8 @@ function GradeBadge({ grade }) {
 }
 
 /**
- * Analyses table; clicking a row opens the full analysis in a drawer.
+ * Analyses table; clicking a row (or Enter / Space on it) opens the full
+ * analysis in a drawer.
  *
  * @param {{analyses: Analysis[]}} props
  */
@@ -37,7 +38,14 @@ export default function AnalysisTable({ analyses }) {
         <Table.Tbody>
           {analyses.map((analysis) => (
             <Table.Tr key={analysis.job_id} style={{ cursor: 'pointer' }}
-              onClick={() => setSelected(analysis)}>
+              tabIndex={0} role="button"
+              aria-label={`Open the analysis of ${analysis.title} at ${analysis.company}`}
+              onClick={() => setSelected(analysis)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                setSelected(analysis);
+              }}>
               <Table.Td><GradeBadge grade={analysis.adequation_grade} /></Table.Td>
               <Table.Td>{analysis.company}</Table.Td>
               <Table.Td>{analysis.title}</Table.Td>
