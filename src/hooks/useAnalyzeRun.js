@@ -3,25 +3,19 @@ import { analyze } from '../api/endpoints/analyses.js';
 import { toStopReason } from '../api/stopReason.js';
 import { t } from '../l10n.js';
 
-/** Safety cap: 50 batches of up to 50 postings is far beyond the daily cap. */
-const MAX_BATCHES = 50;
-
-const INITIAL_PROGRESS = { batches: 0, analysed: 0, failed: 0, remaining: null };
+const INITIAL_PROGRESS = { analysed: 0, failed: 0, skipped: 0 };
 
 const LABELS = { doing: t('stop_labels_analysis_doing'), thing: t('stop_labels_analysis_thing') };
 
 /**
- * Runs analysis batches back to back until nothing remains, one request at a
- * time (the server allows only one run per user).
+ * Grades the picked postings in one request (the server allows one run per
+ * user, and the daily cap is far below the 50 ids a request may carry).
  *
- * `stop()` is a soft stop: the batch in flight finishes, then the loop ends.
- * Aborting the request instead would leave the server marked as running and
- * the next start would get a 409, so the request is only aborted on unmount.
+ * The request is aborted only on unmount.
  *
- * @return {{start: function({limit?: number, windowDays?: number, model?: string}): Promise<void>,
- *     stop: function(): void,
- *     status: ('idle'|'running'|'stopping'|'done'|'stopped'|'failed'),
- *     progress: {batches: number, analysed: number, failed: number, remaining: ?number},
+ * @return {{start: function({jobIds: string[], model?: string}): Promise<void>,
+ *     status: ('idle'|'running'|'done'|'failed'),
+ *     progress: {analysed: number, failed: number, skipped: number},
  *     results: Analysis[], stopReason: ?{kind: string, message: string, retryAfter: ?number}}}
  */
 export function useAnalyzeRun() {
@@ -29,22 +23,14 @@ export function useAnalyzeRun() {
   const [progress, setProgress] = useState(INITIAL_PROGRESS);
   const [results, setResults] = useState([]);
   const [stopReason, setStopReason] = useState(null);
-  const stopRequested = useRef(false);
   const running = useRef(false);
   const controller = useRef(null);
 
   useEffect(() => () => controller.current?.abort(), []);
 
-  const stop = useCallback(() => {
-    if (!running.current) return;
-    stopRequested.current = true;
-    setStatus('stopping');
-  }, []);
-
   const start = useCallback(async (params) => {
     if (running.current) return;
     running.current = true;
-    stopRequested.current = false;
     controller.current = new AbortController();
     const { signal } = controller.current;
     setStatus('running');
@@ -52,31 +38,11 @@ export function useAnalyzeRun() {
     setResults([]);
     setStopReason(null);
 
-    let totals = INITIAL_PROGRESS;
     try {
-      for (let batch = 0; batch < MAX_BATCHES; batch += 1) {
-        const result = await analyze(params, { signal });
-        totals = {
-          batches: totals.batches + 1,
-          analysed: totals.analysed + result.analysed,
-          failed: totals.failed + result.failed,
-          remaining: result.remaining,
-        };
-        setProgress(totals);
-        setResults((previous) => [...previous, ...result.results]);
-
-        if (result.remaining === 0) return setStatus('done');
-        if (result.analysed === 0) {
-          setStopReason({
-            kind: 'no-progress',
-            message: t('stop_no_progress'),
-            retryAfter: null,
-          });
-          return setStatus('failed');
-        }
-        if (stopRequested.current) return setStatus('stopped');
-      }
-      return setStatus('stopped');
+      const result = await analyze(params, { signal });
+      setProgress({ analysed: result.analysed, failed: result.failed, skipped: result.skipped });
+      setResults(result.results);
+      return setStatus('done');
     } catch (error) {
       if (signal.aborted) return undefined; // unmounted
       setStopReason(toStopReason(error, LABELS));
@@ -86,5 +52,5 @@ export function useAnalyzeRun() {
     }
   }, []);
 
-  return { start, stop, status, progress, results, stopReason };
+  return { start, status, progress, results, stopReason };
 }

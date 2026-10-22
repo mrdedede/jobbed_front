@@ -4,7 +4,7 @@ import {
   VisuallyHidden,
 } from '@mantine/core';
 import { Link } from 'react-router-dom';
-import { getDueCount, listAnalyses } from '../../api/endpoints/analyses.js';
+import { listAnalyses, listCandidates } from '../../api/endpoints/analyses.js';
 import { listCvs } from '../../api/endpoints/cvs.js';
 import { listGeneratedCvs } from '../../api/endpoints/generatedCvs.js';
 import { listKeywords } from '../../api/endpoints/keywords.js';
@@ -38,7 +38,7 @@ function StatTile({ label, query, value, hint }) {
 }
 
 export default function Dashboard() {
-  const due = useFetch((signal) => getDueCount(1, { signal }));
+  const due = useFetch((signal) => listCandidates(1, { signal }));
   const week = useFetch((signal) => listAnalyses({ sinceDays: WEEK, limit: 200 }, { signal }));
   const cvs = useFetch((signal) => listCvs({ signal }));
   const generated = useFetch((signal) => listGeneratedCvs({ signal }));
@@ -77,7 +77,7 @@ export default function Dashboard() {
       )}
 
       <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }}>
-        <StatTile label={t('dashboard_waiting')} query={due} value={due.data?.due}
+        <StatTile label={t('dashboard_waiting')} query={due} value={due.data?.length}
           hint={<Anchor component={Link} to="/ai-analysis" size="xs">{t('dashboard_run_analysis')}</Anchor>} />
         <StatTile label={t('dashboard_graded_last_days', { days: WEEK })} query={week} value={week.data && analyses.length}
           hint={average != null && t('dashboard_average_grade', { average })} />

@@ -1,25 +1,25 @@
 import { useState } from 'react';
-import { Button, Group, NumberInput, Paper, Progress, Select, Slider, Stack, Text, Title } from '@mantine/core';
+import { Button, Group, Paper, Select, Slider, Stack, Text, Title } from '@mantine/core';
 import StopAlert from '../StopAlert.jsx';
 import { t } from '../../l10n.js';
 
 const MODELS = ['haiku', 'sonnet'];
 
+/** The API takes at most this many job ids per request. */
+export const MAX_PICKED = 50;
+
 /**
- * Controls and progress for a grading run.
+ * Controls and outcome for grading the picked postings.
  *
  * @param {{run: ReturnType<typeof import('../../hooks/useAnalyzeRun.js').useAnalyzeRun>,
  *     windowDays: number, onWindowDaysChange: function(number): void,
- *     due: ?number}} props
+ *     due: ?number, picked: string[]}} props
  */
-export default function RunPanel({ run, windowDays, onWindowDaysChange, due }) {
-  const [limit, setLimit] = useState(20);
+export default function RunPanel({ run, windowDays, onWindowDaysChange, due, picked }) {
   const [model, setModel] = useState('haiku');
   const { status, progress, stopReason } = run;
-  const active = status === 'running' || status === 'stopping';
-
-  const total = progress.analysed + progress.failed + (progress.remaining ?? 0);
-  const percent = total > 0 ? ((progress.analysed + progress.failed) / total) * 100 : 0;
+  const active = status === 'running';
+  const tooMany = picked.length > MAX_PICKED;
 
   return (
     <Paper withBorder p="md">
@@ -32,32 +32,21 @@ export default function RunPanel({ run, windowDays, onWindowDaysChange, due }) {
           <Slider min={1} max={30} value={windowDays} onChange={onWindowDaysChange} disabled={active}
             thumbProps={{ 'aria-labelledby': 'window-days-label' }} />
         </div>
-        <Group>
-          <NumberInput label={t('run_batch_size')} min={1} max={50} value={limit} w={120} disabled={active}
-            onChange={(value) => setLimit(Number(value) || 1)} />
+        <Group align="flex-end">
           <Select label={t('run_model')} data={MODELS} value={model} w={140} allowDeselect={false}
             disabled={active} onChange={setModel} />
+          <Button loading={active} disabled={picked.length === 0 || tooMany}
+            onClick={() => run.start({ jobIds: picked, model })}>
+            {t('run_start_picked', { count: picked.length })}
+          </Button>
         </Group>
+        {tooMany && <Text size="sm" c="red">{t('run_too_many', { max: MAX_PICKED })}</Text>}
 
-        <Group>
-          {active
-            ? <Button color="red" variant="light" loading={status === 'stopping'}
-                loaderProps={{ type: 'dots' }} onClick={run.stop}>
-                {status === 'stopping' ? t('run_stopping') : t('run_stop')}
-              </Button>
-            : <Button onClick={() => run.start({ limit, windowDays, model })}>{t('run_start')}</Button>}
-        </Group>
-
-        {status !== 'idle' && (
-          <Stack gap={4}>
-            <Progress value={status === 'done' ? 100 : percent} animated={active} />
-            <Text size="sm" c="dimmed">
-              {t('run_progress', { graded: progress.analysed, failed: progress.failed })}
-              {progress.remaining != null && t('run_progress_remaining', { remaining: progress.remaining })}
-              {status === 'done' && t('run_progress_done')}
-              {status === 'stopped' && t('run_progress_stopped')}
-            </Text>
-          </Stack>
+        {status === 'done' && (
+          <Text size="sm" c="dimmed">
+            {t('run_progress', { graded: progress.analysed, failed: progress.failed })}
+            {progress.skipped > 0 && t('run_progress_skipped', { skipped: progress.skipped })}
+          </Text>
         )}
         {stopReason && <StopAlert reason={stopReason} />}
       </Stack>
