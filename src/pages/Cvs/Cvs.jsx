@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, Badge, Button, Group, Modal, Paper, Stack, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import CvEditor from '../../components/CvEditor/CvEditor.jsx';
 import QueryState from '../../components/QueryState.jsx';
+import SuggestTermsModal from '../../components/cv/SuggestTermsModal.jsx';
 import { MAX_CVS, useCvs } from '../../hooks/useCvs.js';
 import { t } from '../../l10n.js';
 
@@ -18,6 +19,9 @@ export default function Cvs() {
   // `editor`: null (closed), 'new', or the CV being edited.
   const [editor, setEditor] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  // Id of the CV just created, while its term suggestions are on screen.
+  const [suggestFor, setSuggestFor] = useState(null);
+  const closeSuggestions = useCallback(() => setSuggestFor(null), []);
 
   const notifyFailure = (caught) =>
     notifications.show({ color: 'red', title: t('common_request_failed'), message: caught.message });
@@ -74,10 +78,12 @@ export default function Cvs() {
           cv={editor === 'new' ? null : editor}
           onClose={() => setEditor(null)}
           onSave={(markdown, makeActive) => (editor === 'new'
-            ? create(markdown, makeActive)
+            ? create(markdown, makeActive).then((created) => setSuggestFor(created.id))
             : update(editor.id, markdown))}
         />
       )}
+
+      {suggestFor && <SuggestTermsModal cvId={suggestFor} onClose={closeSuggestions} />}
 
       <Modal opened={deleting !== null} onClose={() => setDeleting(null)} title={t('cvs_delete_title')} centered>
         <Stack>

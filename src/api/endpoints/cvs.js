@@ -75,3 +75,37 @@ export function activateCv(cvId, options) {
 export function removeCv(cvId, options) {
   return api.delete(`/v1/me/cvs/${cvId}`, options);
 }
+
+/**
+ * The model call behind `suggestCvTerms` takes seconds on Claude, minutes on a
+ * CPU-only Ollama; matches the API's 180 s gateway timeout, plus slack.
+ */
+const SUGGEST_TIMEOUT_MS = 190_000;
+
+/**
+ * Asks the model for keywords and blacklist terms fitting a CV. Stores
+ * nothing; terms the user already has are left out.
+ *
+ * @param {string} cvId CV id.
+ * @param {Object=} options Request options, see `request` in client.js.
+ * @return {Promise<{keywords: string[], blacklist: string[]}>}
+ * @throws {ApiError} 404 if not found, 429 at the daily cap, 502 if the model failed.
+ */
+export function suggestCvTerms(cvId, options) {
+  return api.post(`/v1/me/cvs/${cvId}/suggest-terms`, undefined, {
+    timeout: SUGGEST_TIMEOUT_MS,
+    ...options,
+  });
+}
+
+/**
+ * Adds several keywords and blacklist terms at once. Idempotent per term.
+ *
+ * @param {{keywords: string[], blacklist: string[]}} terms
+ * @param {Object=} options Request options, see `request` in client.js.
+ * @return {Promise<null>}
+ * @throws {ApiError} 409 if a list would pass the per-user limit.
+ */
+export function addTerms(terms, options) {
+  return api.post('/v1/me/terms', terms, options);
+}
