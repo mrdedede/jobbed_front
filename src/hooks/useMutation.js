@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useCallbackRef } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
+import { t } from '../l10n.js';
 
 /**
  * Wraps a write call (create, update, delete, login...) with loading and
@@ -31,7 +32,7 @@ export function useMutation(mutator) {
         setError(caughtError);
         notifications.show({
           color: 'red',
-          title: 'Request failed',
+          title: t('common_request_failed'),
           message: caughtError.detail ?? caughtError.message,
         });
         return undefined;

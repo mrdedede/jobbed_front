@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { analyze } from '../api/endpoints/analyses.js';
 import { toStopReason } from '../api/stopReason.js';
+import { t } from '../l10n.js';
 
 /** Safety cap: 50 batches of up to 50 postings is far beyond the daily cap. */
 const MAX_BATCHES = 50;
 
 const INITIAL_PROGRESS = { batches: 0, analysed: 0, failed: 0, remaining: null };
 
-const LABELS = { doing: 'analysing', thing: 'analysis' };
+const LABELS = { doing: t('stop_labels_analysis_doing'), thing: t('stop_labels_analysis_thing') };
 
 /**
  * Runs analysis batches back to back until nothing remains, one request at a
@@ -68,7 +69,7 @@ export function useAnalyzeRun() {
         if (result.analysed === 0) {
           setStopReason({
             kind: 'no-progress',
-            message: 'The last batch graded nothing, so the run was stopped.',
+            message: t('stop_no_progress'),
             retryAfter: null,
           });
           return setStatus('failed');

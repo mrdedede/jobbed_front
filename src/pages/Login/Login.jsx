@@ -5,6 +5,7 @@ import { login as saveToken, useAuth } from '../../auth/AuthContext.jsx';
 import { validateEmail, validatePassword } from '../../auth/validation.js';
 import { login, signup } from '../../api/endpoints/auth.js';
 import { useMutation } from '../../hooks/useMutation.js';
+import { t } from '../../l10n.js';
 
 export default function Login() {
   const { isAuthenticated } = useAuth();
@@ -25,7 +26,7 @@ export default function Login() {
     email: validateEmail(email),
     // The backend checks the same 8-72 rule on login too.
     password: validatePassword(password),
-    confirm: isSignup && confirmPassword !== password ? 'Passwords do not match' : null,
+    confirm: isSignup && confirmPassword !== password ? t('validation_passwords_mismatch') : null,
   });
 
   const handleSubmit = async (event) => {
@@ -50,19 +51,19 @@ export default function Login() {
     <Center mih="100vh">
       <Paper withBorder p="xl" w={360} component="form" noValidate onSubmit={handleSubmit}>
         <Stack>
-          <Title order={3}>{isSignup ? 'Create account' : 'Log in'}</Title>
-          <TextInput label="Email" type="email" value={email} error={errors.email}
+          <Title order={3}>{isSignup ? t('login_signup_title') : t('login_title')}</Title>
+          <TextInput label={t('login_email')} type="email" value={email} error={errors.email}
             onChange={(event) => setEmail(event.currentTarget.value)} />
-          <PasswordInput label="Password" value={password} error={errors.password}
+          <PasswordInput label={t('login_password')} value={password} error={errors.password}
             onChange={(event) => setPassword(event.currentTarget.value)} />
           {isSignup && (
-            <PasswordInput label="Confirm password" value={confirmPassword} error={errors.confirm}
+            <PasswordInput label={t('login_confirm_password')} value={confirmPassword} error={errors.confirm}
               onChange={(event) => setConfirmPassword(event.currentTarget.value)} />
           )}
-          <Button type="submit" loading={loading}>{isSignup ? 'Sign up' : 'Log in'}</Button>
+          <Button type="submit" loading={loading}>{isSignup ? t('login_signup_submit') : t('login_submit')}</Button>
           <Text size="sm" ta="center">
             <Anchor component="button" type="button" onClick={toggleMode}>
-              {isSignup ? 'Already have an account? Log in' : 'No account? Sign up'}
+              {isSignup ? t('login_to_login') : t('login_to_signup')}
             </Anchor>
           </Text>
         </Stack>

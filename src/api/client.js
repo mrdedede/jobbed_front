@@ -1,3 +1,4 @@
+import { t } from '../l10n.js';
 /**
  * @file Fetch wrapper for the backend API.
  *
@@ -158,8 +159,8 @@ export async function request(path, options = {}) {
     throw new ApiError({
       status: 0,
       detail: timeoutSignal.aborted
-        ? `Request timed out after ${timeout}ms`
-        : 'Network error',
+        ? t('api_timeout', { ms: timeout })
+        : t('api_network_error'),
     });
   }
 

@@ -10,6 +10,7 @@ import { listGeneratedCvs } from '../../api/endpoints/generatedCvs.js';
 import { listKeywords } from '../../api/endpoints/keywords.js';
 import GradeCharts from '../../components/analysis/GradeCharts.jsx';
 import { useFetch } from '../../hooks/useFetch.js';
+import { t } from '../../l10n.js';
 
 const WEEK = 7;
 const TOP_GRADE = 70;
@@ -24,8 +25,8 @@ const TOP_COUNT = 5;
  */
 function StatTile({ label, query, value, hint }) {
   let body;
-  if (query.error) body = <Text c="red" size="sm" role="alert">Failed to load</Text>;
-  else if (query.loading && value == null) body = <Loader size="sm" aria-label={`Loading ${label}`} />;
+  if (query.error) body = <Text c="red" size="sm" role="alert">{t('dashboard_tile_failed')}</Text>;
+  else if (query.loading && value == null) body = <Loader size="sm" aria-label={t('dashboard_tile_loading', { label })} />;
   else body = <Text fz={32} fw={700} lh={1.1}>{value}</Text>;
   return (
     <Paper withBorder p="md">
@@ -55,16 +56,16 @@ export default function Dashboard() {
 
   const hasActiveCv = cvs.data?.some((cv) => cv.is_active);
   const setupSteps = [
-    keywords.data?.length === 0 && { to: '/keywords', text: 'Add keywords, so analysis knows which postings to grade.' },
-    cvs.data && !hasActiveCv && { to: '/cvs', text: 'Add or activate a CV; grading compares postings with it.' },
+    keywords.data?.length === 0 && { to: '/keywords', text: t('dashboard_setup_keywords') },
+    cvs.data && !hasActiveCv && { to: '/cvs', text: t('dashboard_setup_cv') },
   ].filter(Boolean);
 
   return (
     <Stack maw={1000}>
-      <Title order={2}>Dashboard</Title>
+      <Title order={2}>{t('dashboard_title')}</Title>
 
       {setupSteps.length > 0 && (
-        <Alert color="yellow" title="Finish setting up">
+        <Alert color="yellow" title={t('dashboard_finish_setup')}>
           <List size="sm">
             {setupSteps.map((step) => (
               <List.Item key={step.to}>
@@ -76,26 +77,27 @@ export default function Dashboard() {
       )}
 
       <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }}>
-        <StatTile label="Waiting to be graded" query={due} value={due.data?.due}
-          hint={<Anchor component={Link} to="/ai-analysis" size="xs">Run analysis</Anchor>} />
-        <StatTile label={`Graded, last ${WEEK} days`} query={week} value={week.data && analyses.length}
-          hint={average != null && `Average grade ${average}`} />
-        <StatTile label="Active CV" query={cvs} value={cvs.data && (hasActiveCv ? 'Yes' : 'No')}
-          hint={cvs.data && `${cvs.data.length} saved`} />
-        <StatTile label="Generated CVs" query={generated} value={generated.data?.length}
-          hint={<Anchor component={Link} to="/cv-generation" size="xs">Open CV generation</Anchor>} />
+        <StatTile label={t('dashboard_waiting')} query={due} value={due.data?.due}
+          hint={<Anchor component={Link} to="/ai-analysis" size="xs">{t('dashboard_run_analysis')}</Anchor>} />
+        <StatTile label={t('dashboard_graded_last_days', { days: WEEK })} query={week} value={week.data && analyses.length}
+          hint={average != null && t('dashboard_average_grade', { average })} />
+        <StatTile label={t('dashboard_active_cv')} query={cvs} value={cvs.data && (hasActiveCv ? t('dashboard_yes') : t('dashboard_no'))}
+          hint={cvs.data && t('dashboard_saved_count', { count: cvs.data.length })} />
+        <StatTile label={t('dashboard_generated_cvs')} query={generated} value={generated.data?.length}
+          hint={<Anchor component={Link} to="/cv-generation" size="xs">{t('dashboard_open_cv_generation')}</Anchor>} />
       </SimpleGrid>
 
-      <Title order={4}>Top matches this week</Title>
-      {week.error ? <Text c="red" role="alert">Failed to load analyses.</Text>
+      <Title order={4}>{t('dashboard_top_matches')}</Title>
+      {week.error ? <Text c="red" role="alert">{t('dashboard_failed_analyses')}</Text>
         : week.loading && !week.data ? <Loader />
-        : top.length === 0 ? <Text c="dimmed">No posting graded {TOP_GRADE}+ in the last {WEEK} days.</Text>
+        : top.length === 0 ? <Text c="dimmed">{t('dashboard_no_top', { grade: TOP_GRADE, days: WEEK })}</Text>
         : (
           <Table>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Grade</Table.Th><Table.Th>Company</Table.Th><Table.Th>Posting</Table.Th>
-                <Table.Th><VisuallyHidden>Actions</VisuallyHidden></Table.Th>
+                <Table.Th>{t('dashboard_col_grade')}</Table.Th><Table.Th>{t('dashboard_col_company')}</Table.Th>
+                <Table.Th>{t('dashboard_col_posting')}</Table.Th>
+                <Table.Th><VisuallyHidden>{t('dashboard_col_actions')}</VisuallyHidden></Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -109,7 +111,7 @@ export default function Dashboard() {
                   <Table.Td>
                     <Group justify="flex-end">
                       <Button size="xs" variant="light" component={Link} to="/cv-generation"
-                        state={{ jobId: a.job_id }}>Generate CV</Button>
+                        state={{ jobId: a.job_id }}>{t('dashboard_generate_cv')}</Button>
                     </Group>
                   </Table.Td>
                 </Table.Tr>
@@ -120,7 +122,7 @@ export default function Dashboard() {
 
       {analyses.length > 0 && (
         <>
-          <Title order={4}>Last {WEEK} days</Title>
+          <Title order={4}>{t('dashboard_last_days', { days: WEEK })}</Title>
           <GradeCharts analyses={analyses} />
         </>
       )}

@@ -2,6 +2,7 @@ import en from './l10n/values_en.json';
 import es from './l10n/values_es.json';
 import fr from './l10n/values_fr.json';
 import pt from './l10n/values_pt.json';
+import { t } from '../l10n.js';
 
 const LOCALES = { en, es, fr, pt };
 const DEFAULT_LOCALE = 'en';
@@ -30,6 +31,6 @@ export function loadL10n(locale) {
  */
 export function resolveKeys(text, l10n) {
   const unknown = [...text.matchAll(PLACEHOLDER)].map((m) => m[1]).filter((key) => !(key in l10n));
-  if (unknown.length > 0) throw new Error(`Unknown locale IDs: ${unknown.join(', ')}`);
+  if (unknown.length > 0) throw new Error(t('cv_unknown_locale_ids', { ids: unknown.join(', ') }));
   return text.replace(PLACEHOLDER, (_, key) => l10n[key]);
 }

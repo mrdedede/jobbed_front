@@ -2,14 +2,16 @@ import { useState } from 'react';
 import {
   ActionIcon, Alert, Badge, Button, Group, Modal, Paper, Stack, Text, TextInput, Textarea, Title,
 } from '@mantine/core';
+import { t } from '../../l10n.js';
 
 const EXPERIENCE_FIELDS = [
-  ['role', 'Role'], ['company', 'Company'], ['location', 'Location'],
-  ['start_date', 'Start'], ['end_date', 'End'],
+  ['role', t('cv_review_role')], ['company', t('cv_review_company')], ['location', t('cv_review_location')],
+  ['start_date', t('cv_review_start')], ['end_date', t('cv_review_end')],
 ];
 const EDUCATION_FIELDS = [
-  ['diploma', 'Diploma'], ['institution', 'Institution'], ['location', 'Location'],
-  ['period', 'Period'], ['degree', 'Degree'], ['details', 'Details'],
+  ['diploma', t('cv_review_diploma')], ['institution', t('cv_review_institution')],
+  ['location', t('cv_review_location')], ['period', t('cv_review_period')],
+  ['degree', t('cv_review_degree')], ['details', t('cv_review_details')],
 ];
 
 /** The CV with its string lists as editable text: bullets one per line, skills comma-separated. */
@@ -55,7 +57,7 @@ export default function GeneratedCvEditor({ generated, onClose, onSave }) {
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
 
   const close = () => {
-    if (!dirty || window.confirm('Discard your unsaved changes?')) onClose();
+    if (!dirty || window.confirm(t('cv_editor_discard'))) onClose();
   };
 
   const save = async () => {
@@ -85,48 +87,48 @@ export default function GeneratedCvEditor({ generated, onClose, onSave }) {
 
   return (
     <Modal opened onClose={close} size="xl"
-      title={<Group gap="xs">{`Review CV: ${generated.company}, ${generated.title}`}<Badge>{generated.locale}</Badge></Group>}>
+      title={<Group gap="xs">{t('cv_review_title', { company: generated.company, title: generated.title })}<Badge>{generated.locale}</Badge></Group>}>
       <Stack>
         <Alert color="yellow">
-          This CV was written by AI. Check names, employers, dates and claims before downloading.
+          {t('cv_review_ai_warning')}
         </Alert>
 
-        <TextInput label="Introduction" value={form.cv_introduction}
+        <TextInput label={t('cv_review_introduction')} value={form.cv_introduction}
           onChange={(event) => set('cv_introduction', event.currentTarget.value)} />
-        <Textarea label="Profile" autosize minRows={3} value={form.profile_text}
+        <Textarea label={t('cv_review_profile')} autosize minRows={3} value={form.profile_text}
           onChange={(event) => set('profile_text', event.currentTarget.value)} />
 
-        <Title order={5}>Skills</Title>
+        <Title order={5}>{t('cv_review_skills')}</Title>
         {form.skills.map((group, i) => (
           <Group key={i} align="flex-end" wrap="nowrap">
-            <TextInput label="Competence" value={group.competence} w="30%"
+            <TextInput label={t('cv_review_competence')} value={group.competence} w="30%"
               onChange={(event) => setItem('skills', i, 'competence', event.currentTarget.value)} />
-            <TextInput label="Skills (comma-separated)" value={group.skills} style={{ flex: 1 }}
+            <TextInput label={t('cv_review_skills_list')} value={group.skills} style={{ flex: 1 }}
               onChange={(event) => setItem('skills', i, 'skills', event.currentTarget.value)} />
-            <RemoveButton label={`Remove skill group ${i + 1}`} onClick={() => removeItem('skills', i)} />
+            <RemoveButton label={t('cv_review_remove_skill_group', { n: i + 1 })} onClick={() => removeItem('skills', i)} />
           </Group>
         ))}
 
-        <Title order={5}>Experiences</Title>
+        <Title order={5}>{t('cv_review_experiences')}</Title>
         {form.experiences.map((experience, i) => (
           <Paper key={i} withBorder p="sm">
             <Stack gap="xs">
               <Group justify="flex-end">
-                <RemoveButton label={`Remove experience ${i + 1}`} onClick={() => removeItem('experiences', i)} />
+                <RemoveButton label={t('cv_review_remove_experience', { n: i + 1 })} onClick={() => removeItem('experiences', i)} />
               </Group>
               {EXPERIENCE_FIELDS.map(([key, label]) => input('experiences', i, key, label, experience))}
-              <Textarea label="Bullets (one per line)" autosize minRows={2} value={experience.bullets}
+              <Textarea label={t('cv_review_bullets')} autosize minRows={2} value={experience.bullets}
                 onChange={(event) => setItem('experiences', i, 'bullets', event.currentTarget.value)} />
             </Stack>
           </Paper>
         ))}
 
-        <Title order={5}>Education</Title>
+        <Title order={5}>{t('cv_review_education')}</Title>
         {form.education.map((education, i) => (
           <Paper key={i} withBorder p="sm">
             <Stack gap="xs">
               <Group justify="flex-end">
-                <RemoveButton label={`Remove education ${i + 1}`} onClick={() => removeItem('education', i)} />
+                <RemoveButton label={t('cv_review_remove_education', { n: i + 1 })} onClick={() => removeItem('education', i)} />
               </Group>
               {EDUCATION_FIELDS.map(([key, label]) => input('education', i, key, label, education))}
             </Stack>
@@ -135,9 +137,9 @@ export default function GeneratedCvEditor({ generated, onClose, onSave }) {
 
         {error && <Alert color="red">{error}</Alert>}
         <Group justify="flex-end">
-          {!dirty && <Text size="xs" c="dimmed">No changes</Text>}
-          <Button variant="default" onClick={close}>Cancel</Button>
-          <Button loading={saving} onClick={save}>Save</Button>
+          {!dirty && <Text size="xs" c="dimmed">{t('cv_review_no_changes')}</Text>}
+          <Button variant="default" onClick={close}>{t('common_cancel')}</Button>
+          <Button loading={saving} onClick={save}>{t('common_save')}</Button>
         </Group>
       </Stack>
     </Modal>

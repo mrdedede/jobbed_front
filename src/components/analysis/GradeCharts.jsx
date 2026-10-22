@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { BarChart, LineChart } from '@mantine/charts';
 import { Group, Stack, Text, Title } from '@mantine/core';
+import { t } from '../../l10n.js';
 
 const BUCKETS = ['0-19', '20-39', '40-59', '60-79', '80-100'];
 
@@ -31,18 +32,20 @@ export default function GradeCharts({ analyses }) {
     <Stack>
       <Group grow align="flex-start">
         <Stack gap="xs">
-          <Title order={5}>Grades</Title>
-          <BarChart h={220} data={histogram} dataKey="range" series={[{ name: 'count', color: 'violet.6' }]} />
+          <Title order={5}>{t('grade_charts_grades')}</Title>
+          <BarChart h={220} data={histogram} dataKey="range" series={[{ name: 'count', label: t('grade_charts_series_count'), color: 'violet.6' }]} />
         </Stack>
         <Stack gap="xs">
-          <Title order={5}>Average grade per day</Title>
-          <LineChart h={220} data={perDay} dataKey="day" series={[{ name: 'average', color: 'violet.6' }]}
+          <Title order={5}>{t('grade_charts_average_per_day')}</Title>
+          <LineChart h={220} data={perDay} dataKey="day" series={[{ name: 'average', label: t('grade_charts_series_average'), color: 'violet.6' }]}
             yAxisProps={{ domain: [0, 100] }} />
         </Stack>
       </Group>
       <Text size="xs" c="dimmed">
-        Based on the {analyses.length} analyses currently loaded (max 200). Grades:{' '}
-        {histogram.map(({ range, count }) => `${range}: ${count}`).join(', ')}.
+        {t('grade_charts_summary', {
+          count: analyses.length,
+          grades: histogram.map(({ range, count }) => `${range}: ${count}`).join(', '),
+        })}
       </Text>
     </Stack>
   );
