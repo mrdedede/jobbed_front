@@ -152,42 +152,70 @@ describe('Cvs', () => {
 });
 
 describe('AiAnalysis', () => {
-  it('runs an analysis and shows the new grades', async () => {
+  const candidate = (id, title) => ({
+    job_id: id, company: 'Acme', title, place: 'Paris', url: `https://x/${id}`,
+    scraped_at: '2026-10-21T08:00:00Z',
+  });
+
+  it('grades only the picked postings and shows the new grades', async () => {
     let stored = [];
+    let offered = [candidate('j1', 'Go Dev'), candidate('j2', 'Py Dev'), candidate('j3', 'Rust Dev')];
     const graded = {
       job_id: 'j1', adequation_grade: 88, company: 'Acme', title: 'Go Dev', place: 'Paris',
       url: 'https://x', analysed_at: '2026-10-21T08:00:00Z', depth_analysis: 'fits',
     };
-    mockFetch({
-      'GET /v1/me/analyses/due': json({ due: 1 }),
+    const fetchMock = mockFetch({
+      'GET /v1/me/analyses/candidates': () => json(offered),
       'GET /v1/me/analyses': () => json(stored),
       'POST /v1/me/analyze': () => {
         stored = [graded];
-        return json({ analysed: 1, failed: 0, due: 1, filtered_out: 0, remaining: 0, results: [graded] });
+        offered = offered.slice(1);
+        return json({ analysed: 1, failed: 0, skipped: 1, results: [graded] });
       },
     });
     renderWithProviders(<AiAnalysis />);
-    expect(await screen.findByText(/1 waiting to be graded/)).toBeInTheDocument();
-    expect(screen.getByText('No analyses match these filters.')).toBeInTheDocument();
+    expect(await screen.findByText(/3 waiting to be graded/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Analyse 0 selected' })).toBeDisabled();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Start' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Select Go Dev' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Select Rust Dev' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Analyse 2 selected' }));
 
-    expect(await screen.findByText(/1 graded, 0 failed, 0 remaining - done/)).toBeInTheDocument();
+    const [, init] = fetchMock.mock.calls.find(([path]) => path === '/v1/me/analyze');
+    expect(JSON.parse(init.body)).toEqual({ job_ids: ['j1', 'j3'], model: 'haiku' });
+    expect(await screen.findByText(/1 graded, 0 failed, 1 skipped/)).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: 'Open the analysis of Go Dev at Acme' }))
       .toBeInTheDocument();
     expect(screen.getByText('Analysis finished')).toBeInTheDocument();
+    // Go Dev is graded and no longer offered; Rust Dev stays picked.
+    expect(await screen.findByRole('button', { name: 'Analyse 1 selected' })).toBeInTheDocument();
+  });
+
+  it('opens a posting to read its description and pick it from there', async () => {
+    mockFetch({
+      'GET /v1/me/analyses/candidates': json([candidate('j1', 'Go Dev')]),
+      'GET /v1/me/analyses': json([]),
+      'GET /v1/me/jobs/j1': json({ ...candidate('j1', 'Go Dev'), description: 'Write Go all day' }),
+    });
+    renderWithProviders(<AiAnalysis />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Read the posting Go Dev at Acme' }));
+
+    expect(await screen.findByText('Write Go all day')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Select for analysis' }));
+    expect(screen.getByRole('checkbox', { name: 'Select Go Dev' })).toBeChecked();
   });
 
   it('links to the CVs page when there is no active CV', async () => {
     mockFetch({
-      'GET /v1/me/analyses/due': json({ due: 3 }),
+      'GET /v1/me/analyses/candidates': json([candidate('j1', 'Go Dev')]),
       'GET /v1/me/analyses': json([]),
       'POST /v1/me/analyze': json({ detail: 'no active CV' }, 409),
     });
     renderWithProviders(<AiAnalysis />);
-    await screen.findByText(/3 waiting/);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Start' }));
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Select all postings' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Analyse 1 selected' }));
 
     expect(await screen.findByRole('link', { name: 'Go to your CVs' })).toHaveAttribute('href', '/cvs');
   });

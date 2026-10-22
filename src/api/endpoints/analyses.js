@@ -1,5 +1,5 @@
 /**
- * @file Job analysis endpoints (/v1/me/analyze and /v1/me/analyses).
+ * @file Job analysis endpoints (/v1/me/analyze, /v1/me/analyses and /v1/me/jobs).
  */
 
 import { api } from '../client.js';
@@ -28,28 +28,36 @@ const ANALYZE_TIMEOUT_MS = 170_000;
  * @typedef {Object} AnalyzeResult
  * @property {number} analysed
  * @property {number} failed
- * @property {number} due
- * @property {number} filtered_out
- * @property {number} remaining Call again while this is greater than 0.
+ * @property {number} skipped Unknown, already graded, or past the daily cap.
  * @property {Analysis[]} results
  */
 
 /**
- * Grades the next batch of matching postings, newest first.
+ * @typedef {Object} Candidate An ungraded posting the user may pick.
+ * @property {string} job_id
+ * @property {string} company
+ * @property {string} title
+ * @property {?string} place
+ * @property {string} url
+ * @property {string} scraped_at ISO 8601 timestamp.
+ */
+
+/**
+ * Grades the picked postings, in order, up to the daily cap.
  *
- * @param {{limit?: number, windowDays?: number, model?: string}=} params
- *     `limit` 1-50 (API default 20), `windowDays` 1-30 (default 1), `model`
- *     one of the server's allowed models (default 'haiku').
+ * @param {{jobIds: string[], model?: string}} params `jobIds` 1-50 ids from
+ *     `listCandidates`, `model` one of the server's allowed models
+ *     (default 'haiku').
  * @param {Object=} options Request options, see `request` in client.js.
  * @return {Promise<AnalyzeResult>}
  * @throws {ApiError} 409 if there is no active CV or a run is in flight,
  *     429 if the daily cap is reached (see `retryAfter`), 502 if every
  *     grading call failed.
  */
-export function analyze({ limit, windowDays, model } = {}, options) {
+export function analyze({ jobIds, model }, options) {
   return api.post(
     '/v1/me/analyze',
-    { limit, window_days: windowDays, model },
+    { job_ids: jobIds, model },
     { timeout: ANALYZE_TIMEOUT_MS, ...options },
   );
 }
@@ -74,14 +82,27 @@ export function listAnalyses({ limit, minGrade, sinceDays } = {}, options) {
 }
 
 /**
- * Counts postings an analysis run could grade right now.
+ * Lists the ungraded postings matching the user's keywords and blacklist,
+ * newest first: what `analyze` picks from.
  *
  * @param {number=} windowDays 1-30 (API default 1).
  * @param {Object=} options Request options, see `request` in client.js.
- * @return {Promise<{due: number}>}
+ * @return {Promise<Candidate[]>}
  */
-export function getDueCount(windowDays, options) {
+export function listCandidates(windowDays, options) {
   const queryString =
     windowDays === undefined ? '' : `?window_days=${windowDays}`;
-  return api.get(`/v1/me/analyses/due${queryString}`, options);
+  return api.get(`/v1/me/analyses/candidates${queryString}`, options);
+}
+
+/**
+ * Reads one posting, description included.
+ *
+ * @param {string} jobId
+ * @param {Object=} options Request options, see `request` in client.js.
+ * @return {Promise<Candidate & {description: ?string}>}
+ * @throws {ApiError} 404 if there is no such posting.
+ */
+export function getJob(jobId, options) {
+  return api.get(`/v1/me/jobs/${jobId}`, options);
 }

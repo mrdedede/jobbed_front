@@ -9,7 +9,7 @@ const analysis = (id, grade, day = '2026-10-20') => ({
 });
 
 const routes = (overrides = {}) => ({
-  'GET /v1/me/analyses/due?window_days=1': json({ due: 12 }),
+  'GET /v1/me/analyses/candidates?window_days=1': json(Array.from({ length: 12 }, (_, i) => ({ job_id: `c${i}` }))),
   'GET /v1/me/analyses?limit=200&since_days=7': json([
     analysis('a', 90), analysis('b', 40), analysis('c', 75), analysis('d', null),
   ]),

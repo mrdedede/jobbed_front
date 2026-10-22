@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { Group, Select, Slider, Stack, Text, Title } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { getDueCount } from '../../api/endpoints/analyses.js';
+import { listCandidates } from '../../api/endpoints/analyses.js';
 import QueryState from '../../components/QueryState.jsx';
 import AnalysisTable from '../../components/analysis/AnalysisTable.jsx';
+import CandidateTable from '../../components/analysis/CandidateTable.jsx';
 import GradeCharts from '../../components/analysis/GradeCharts.jsx';
 import RunPanel from '../../components/analysis/RunPanel.jsx';
 import { useAnalyses } from '../../hooks/useAnalyses.js';
@@ -25,6 +26,7 @@ export default function AiAnalysis() {
   const [windowDays, setWindowDays] = useState(1);
   const [minGrade, setMinGrade] = useState(0);
   const [sinceDays, setSinceDays] = useState('');
+  const [picked, setPicked] = useState(() => new Set());
   const run = useAnalyzeRun();
   const { analyses, loaded, loading, error, refetch } = useAnalyses({
     minGrade,
@@ -32,20 +34,23 @@ export default function AiAnalysis() {
   });
   // Debounced: dragging the slider would otherwise send one request per step.
   const [debouncedWindowDays] = useDebouncedValue(windowDays, 300);
-  const { data: due, error: dueError, refetch: refetchDue } = useFetch(
-    (signal) => getDueCount(debouncedWindowDays, { signal }),
+  const candidates = useFetch(
+    (signal) => listCandidates(debouncedWindowDays, { signal }),
     [debouncedWindowDays],
   );
+  const refetchCandidates = candidates.refetch;
+  // Only ids still on offer count: a narrower window or a finished run drops some.
+  const pickedIds = (candidates.data ?? []).map((c) => c.job_id).filter((id) => picked.has(id));
 
-  const finished = ['done', 'stopped', 'failed'].includes(run.status);
+  const finished = ['done', 'failed'].includes(run.status);
   useEffect(() => {
     if (!finished) return;
     refetch();
-    refetchDue();
+    refetchCandidates();
     if (run.status === 'done') {
       notifications.show({ color: 'green', message: t('ai_analysis_finished') });
     }
-  }, [finished, run.status, refetch, refetchDue]);
+  }, [finished, run.status, refetch, refetchCandidates]);
 
   // 409 "already running" (e.g. a run left behind by a reload): the server
   // finishes it on its own, so pick up its results a little later.
@@ -54,20 +59,21 @@ export default function AiAnalysis() {
     if (!busy) return undefined;
     const timerId = setTimeout(() => {
       refetch();
-      refetchDue();
+      refetchCandidates();
     }, BUSY_REFETCH_MS);
     return () => clearTimeout(timerId);
-  }, [busy, refetch, refetchDue]);
+  }, [busy, refetch, refetchCandidates]);
 
   return (
     <Stack maw={1000}>
       <Title order={2}>{t('ai_analysis_title')}</Title>
-      <RunPanel run={run} windowDays={windowDays} onWindowDaysChange={setWindowDays} due={due?.due} />
-      {dueError && (
-        <Text c="red" size="sm" role="alert">
-          {t('ai_analysis_due_error', { error: dueError.detail ?? dueError.message })}
-        </Text>
-      )}
+      <RunPanel run={run} windowDays={windowDays} onWindowDaysChange={setWindowDays}
+        due={candidates.data?.length} picked={pickedIds} />
+      <QueryState loading={candidates.loading} error={candidates.error} hasData={candidates.data != null}
+        onRetry={refetchCandidates} label={t('candidates_query_label')}>
+        <CandidateTable candidates={candidates.data ?? []} picked={picked} onPickedChange={setPicked}
+          disabled={run.status === 'running'} />
+      </QueryState>
 
       <Group align="flex-end">
         <div style={{ flex: 1, maxWidth: 320 }}>
