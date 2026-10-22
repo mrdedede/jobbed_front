@@ -111,6 +111,7 @@ describe('Cvs', () => {
     mockFetch({
       'GET /v1/me/cvs': json([]),
       'POST /v1/me/cvs': ({ body }) => json({ id: 'n', content_md: body.content_md, is_active: body.make_active }, 201),
+      'POST /v1/me/cvs/n/suggest-terms': json({ keywords: [], blacklist: [] }),
     });
     const user = userEvent.setup();
     renderWithProviders(<Cvs />);
@@ -122,6 +123,31 @@ describe('Cvs', () => {
 
     expect(await screen.findByText('Backend engineer')).toBeInTheDocument();
     expect(screen.getByText('1 / 10')).toBeInTheDocument();
+    // Nothing new to suggest: straight back to the list.
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('adds the suggested terms the user keeps', async () => {
+    const fetchMock = mockFetch({
+      'GET /v1/me/cvs': json([]),
+      'POST /v1/me/cvs': ({ body }) => json({ id: 'n', content_md: body.content_md, is_active: true }, 201),
+      'POST /v1/me/cvs/n/suggest-terms': json({ keywords: ['go', 'rust'], blacklist: ['nurse'] }),
+      'POST /v1/me/terms': json(null, 204),
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<Cvs />);
+    await screen.findByText('No CVs yet.');
+
+    await user.click(screen.getByRole('button', { name: 'New CV' }));
+    await user.type(within(screen.getByRole('dialog')).getByRole('textbox'), 'Go dev');
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /save/i }));
+
+    await user.click(await screen.findByRole('checkbox', { name: 'rust' }));
+    await user.click(screen.getByRole('button', { name: 'Add 2 terms' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    const [, init] = fetchMock.mock.calls.find(([path]) => path === '/v1/me/terms');
+    expect(JSON.parse(init.body)).toEqual({ keywords: ['go'], blacklist: ['nurse'] });
   });
 });
 

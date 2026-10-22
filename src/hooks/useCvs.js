@@ -23,7 +23,7 @@ function toError(caught) {
  *
  * @return {{cvs: Array<{id: string, content_md: string, is_active: boolean,
  *     pending?: boolean}>, loaded: boolean, loading: boolean, error: ?ApiError,
- *     refetch: function(): void, create: function(string, boolean): Promise<void>,
+ *     refetch: function(): void, create: function(string, boolean): Promise<Object>,
  *     update: function(string, string): Promise<void>,
  *     activate: function(string): Promise<void>,
  *     remove: function(string): Promise<void>}}
@@ -66,6 +66,7 @@ export function useCvs() {
     try {
       const created = await createCv(text, makeActive);
       change((previous) => previous.map((cv) => (cv.id === tempId ? created : cv)));
+      return created;
     } catch (caught) {
       change((previous) => previous
         .filter((cv) => cv.id !== tempId)
