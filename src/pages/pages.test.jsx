@@ -340,6 +340,61 @@ describe('CvGeneration', () => {
     const rows = await screen.findAllByRole('button', { name: 'Generate' });
     expect(rows[0].closest('tr')).toHaveTextContent('Picked');
   });
+
+  describe('job drawer', () => {
+    const posting = json({ job_id: 'j1', company: 'Acme', title: 'Go Dev', url: 'https://x/post',
+      scraped_at: '2026-10-20T08:00:00Z', description: 'We need Go.' });
+    const rowName = 'Open the analysis of Go Dev at Acme';
+
+    it('opens from a waiting posting row, but not from its Generate button', async () => {
+      mockFetch({
+        'GET /v1/me/analyses': json([{ ...graded, depth_analysis: 'Lead with **Go**' }]),
+        'GET /v1/me/generated-cvs': json([]),
+        'GET /v1/me/jobs/j1': posting,
+        'POST /v1/me/cvs/generate': json({ generation_id: 'g1' }, 202),
+        'GET /v1/me/cvs/generate/g1': json({ status: 'running', cv: null, error: null }),
+      });
+      const user = userEvent.setup();
+      renderWithProviders(<CvGeneration />);
+
+      await user.click(await screen.findByRole('button', { name: 'Generate' }));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: rowName }));
+      const drawer = await screen.findByRole('dialog');
+      expect(within(drawer).getByText('Go')).toBeInTheDocument();
+      expect(await within(drawer).findByText('We need Go.')).toBeInTheDocument();
+    });
+
+    it('opens from a generated CV row, with a link to the posting', async () => {
+      mockFetch({
+        'GET /v1/me/analyses': json([]),
+        'GET /v1/me/generated-cvs': json([{ ...generated, depth_analysis: 'Lead with **Go**' }]),
+        'GET /v1/me/jobs/j1': posting,
+      });
+      const user = userEvent.setup();
+      renderWithProviders(<CvGeneration />);
+
+      await user.click(await screen.findByRole('button', { name: rowName }));
+      const drawer = await screen.findByRole('dialog');
+      expect(await within(drawer).findByRole('link', { name: 'Open posting' })).toHaveAttribute('href', 'https://x/post');
+    });
+
+    it('opens from the CV editor', async () => {
+      mockFetch({
+        'GET /v1/me/analyses': json([]),
+        'GET /v1/me/generated-cvs': json([{ ...generated, depth_analysis: 'Lead with **Go**' }]),
+        'GET /v1/me/jobs/j1': posting,
+      });
+      const user = userEvent.setup();
+      renderWithProviders(<CvGeneration />);
+
+      await user.click(await screen.findByRole('button', { name: 'Review / edit' }));
+      expect(screen.getAllByRole('dialog')).toHaveLength(1);
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Job details' }));
+      expect(await screen.findByText('We need Go.')).toBeInTheDocument();
+    });
+  });
 });
 
 describe('CoverLetters', () => {
