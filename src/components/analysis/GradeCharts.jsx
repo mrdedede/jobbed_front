@@ -1,32 +1,14 @@
-import { useMemo } from 'react';
 import { BarChart, LineChart } from '@mantine/charts';
 import { Group, Stack, Text, Title } from '@mantine/core';
 import { t } from '../../l10n.js';
 
-const BUCKETS = ['0-19', '20-39', '40-59', '60-79', '80-100'];
-
 /**
- * Grade histogram and average grade per day, from already-loaded analyses.
+ * Grade histogram and average grade per day, as computed by the server.
  *
- * @param {{analyses: Analysis[]}} props
+ * @param {{stats: AnalysisStats}} props
  */
-export default function GradeCharts({ analyses }) {
-  const { histogram, perDay } = useMemo(() => {
-    const counts = BUCKETS.map((range) => ({ range, count: 0 }));
-    const days = new Map();
-    for (const { adequation_grade: grade, analysed_at: at } of analyses) {
-      if (grade == null) continue;
-      counts[Math.min(Math.floor(grade / 20), 4)].count += 1;
-      const day = at.slice(0, 10);
-      const entry = days.get(day) ?? { sum: 0, n: 0 };
-      days.set(day, { sum: entry.sum + grade, n: entry.n + 1 });
-    }
-    return {
-      histogram: counts,
-      perDay: [...days.entries()].sort(([a], [b]) => a.localeCompare(b))
-        .map(([day, { sum, n }]) => ({ day, average: Math.round(sum / n) })),
-    };
-  }, [analyses]);
+export default function GradeCharts({ stats }) {
+  const { histogram, per_day: perDay, count } = stats;
 
   return (
     <Stack>
@@ -43,7 +25,7 @@ export default function GradeCharts({ analyses }) {
       </Group>
       <Text size="xs" c="dimmed">
         {t('grade_charts_summary', {
-          count: analyses.length,
+          count,
           grades: histogram.map(({ range, count }) => `${range}: ${count}`).join(', '),
         })}
       </Text>

@@ -33,6 +33,21 @@ const CANDIDATES_TIMEOUT_MS = 170_000;
  */
 
 /**
+ * @template T
+ * @typedef {Object} Page One page of a listing.
+ * @property {T[]} items
+ * @property {number} total Every row the filters match.
+ */
+
+/**
+ * @typedef {Object} AnalysisStats
+ * @property {number} count Analyses matching, ungraded ones included.
+ * @property {?number} average Mean grade, null when nothing is graded.
+ * @property {Array<{range: string, count: number}>} histogram Five 20-point buckets.
+ * @property {Array<{day: string, average: number}>} per_day UTC days, oldest first.
+ */
+
+/**
  * @typedef {Object} AnalyzeResult
  * @property {number} analysed
  * @property {number} failed
@@ -70,23 +85,56 @@ export function analyze({ jobIds, model }, options) {
   );
 }
 
+/** `?a=1&b=2` from the defined values, '' when there are none. */
+function queryString(params) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined) query.set(key, value);
+  }
+  return query.size ? `?${query}` : '';
+}
+
 /**
- * Lists stored analyses.
+ * Lists stored analyses, best fit first.
  *
- * @param {{limit?: number, minGrade?: number, sinceDays?: number}=} params
- *     `limit` 1-200 (API default 50), `minGrade` 0-100 (default 0),
+ * @param {{limit?: number, offset?: number, minGrade?: number, sinceDays?: number}=} params
+ *     `limit` 1-100 (API default 20), `minGrade` 0-100 (default 0),
  *     `sinceDays` 1-365 keeps only analyses made within that many days
  *     (default: all).
  * @param {Object=} options Request options, see `request` in client.js.
- * @return {Promise<Analysis[]>}
+ * @return {Promise<Page<Analysis>>}
  */
-export function listAnalyses({ limit, minGrade, sinceDays } = {}, options) {
-  const query = new URLSearchParams();
-  if (limit !== undefined) query.set('limit', limit);
-  if (minGrade !== undefined) query.set('min_grade', minGrade);
-  if (sinceDays !== undefined) query.set('since_days', sinceDays);
-  const queryString = query.size ? `?${query}` : '';
-  return api.get(`/v1/me/analyses${queryString}`, options);
+export function listAnalyses({ limit, offset, minGrade, sinceDays } = {}, options) {
+  return api.get(`/v1/me/analyses${queryString({
+    limit, offset, min_grade: minGrade, since_days: sinceDays,
+  })}`, options);
+}
+
+/**
+ * Count, average, histogram and per-day average of the stored analyses,
+ * computed server-side over the same filters as `listAnalyses`.
+ *
+ * @param {{minGrade?: number, sinceDays?: number}=} params
+ * @param {Object=} options Request options, see `request` in client.js.
+ * @return {Promise<AnalysisStats>}
+ */
+export function getAnalysisStats({ minGrade, sinceDays } = {}, options) {
+  return api.get(`/v1/me/analyses/stats${queryString({
+    min_grade: minGrade, since_days: sinceDays,
+  })}`, options);
+}
+
+/**
+ * Graded postings the user has no generated CV for yet, best fit first.
+ *
+ * @param {{minGrade?: number, limit?: number, offset?: number}=} params
+ * @param {Object=} options Request options, see `request` in client.js.
+ * @return {Promise<Page<Analysis>>}
+ */
+export function listAnalysesWithoutCv({ minGrade, limit, offset } = {}, options) {
+  return api.get(`/v1/me/analyses/without-cv${queryString({
+    min_grade: minGrade, limit, offset,
+  })}`, options);
 }
 
 /**
@@ -94,14 +142,14 @@ export function listAnalyses({ limit, minGrade, sinceDays } = {}, options) {
  * newest first: what `analyze` picks from.
  *
  * @param {number=} windowDays 1-30 (API default 1).
+ * @param {{limit?: number, offset?: number}=} page
  * @param {Object=} options Request options, see `request` in client.js.
- * @return {Promise<Candidate[]>}
+ * @return {Promise<Page<Candidate>>}
  */
-export function listCandidates(windowDays, options) {
-  const queryString =
-    windowDays === undefined ? '' : `?window_days=${windowDays}`;
-  return api.get(`/v1/me/analyses/candidates${queryString}`,
-    { timeout: CANDIDATES_TIMEOUT_MS, ...options });
+export function listCandidates(windowDays, { limit, offset } = {}, options) {
+  return api.get(`/v1/me/analyses/candidates${queryString({
+    window_days: windowDays, limit, offset,
+  })}`, { timeout: CANDIDATES_TIMEOUT_MS, ...options });
 }
 
 /**

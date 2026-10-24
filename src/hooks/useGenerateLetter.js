@@ -18,8 +18,9 @@ const LETTER_KIND = {
  *   const { generate, status, items } = useGenerateLetter();
  *   generate({ cvId: cv.cv_id, answers: { motivation: '...' } });
  *
+ * @param {number=} page The 1-based page of letters to show.
  * @return {Object} See `useGeneration`.
  */
-export function useGenerateLetter() {
-  return useGeneration(LETTER_KIND);
+export function useGenerateLetter(page = 1) {
+  return useGeneration(LETTER_KIND, page);
 }

@@ -16,6 +16,11 @@ import { vi } from 'vitest';
  * @param {number=} status
  * @param {Object<string, string>=} headers
  */
+/** A paged listing's response: `{items, total}`. */
+export function page(items, total = items.length) {
+  return json({ items, total });
+}
+
 export function json(body, status = 200, headers = {}) {
   return new Response(status === 204 ? null : JSON.stringify(body), {
     status,

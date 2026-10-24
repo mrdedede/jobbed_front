@@ -30,7 +30,7 @@ function JobDetail({ jobId, picked, onToggle }) {
 }
 
 /**
- * Ungraded postings to pick from. The checkbox picks a row; clicking the row
+ * One page of ungraded postings to pick from. The checkbox picks a row; clicking the row
  * (or Enter / Space on it) opens its description in a drawer.
  *
  * @param {{candidates: Candidate[], picked: Set<string>,
@@ -48,6 +48,15 @@ export default function CandidateTable({ candidates, picked, onPickedChange, dis
   };
   const all = candidates.every((c) => picked.has(c.job_id));
   const some = !all && candidates.some((c) => picked.has(c.job_id));
+  // Picks on other pages survive (un)picking all of this one.
+  const pickPage = () => {
+    const next = new Set(picked);
+    for (const { job_id: jobId } of candidates) {
+      if (all) next.delete(jobId);
+      else next.add(jobId);
+    }
+    onPickedChange(next);
+  };
 
   return (
     <>
@@ -57,7 +66,7 @@ export default function CandidateTable({ candidates, picked, onPickedChange, dis
             <Table.Tr>
               <Table.Th w={40}>
                 <Checkbox aria-label={t('candidates_pick_all')} checked={all} indeterminate={some} disabled={disabled}
-                  onChange={() => onPickedChange(all ? new Set() : new Set(candidates.map((c) => c.job_id)))} />
+                  onChange={pickPage} />
               </Table.Th>
               <Table.Th>{t('analysis_col_title')}</Table.Th><Table.Th>{t('analysis_col_company')}</Table.Th>
               <Table.Th>{t('analysis_col_place')}</Table.Th><Table.Th>{t('candidates_col_scraped')}</Table.Th>

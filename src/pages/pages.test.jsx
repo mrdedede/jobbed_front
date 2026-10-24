@@ -8,7 +8,7 @@ import Cvs from './Cvs/Cvs.jsx';
 import Keywords from './Keywords/Keywords.jsx';
 import { formatDateTime } from '../dateTime.js';
 import { downloadBlob } from '../cv/download.js';
-import { json, mockFetch, renderWithProviders } from '../test/utils.jsx';
+import { json, mockFetch, page, renderWithProviders } from '../test/utils.jsx';
 
 vi.mock('../cv/download.js', () => ({ downloadBlob: vi.fn() }));
 
@@ -167,8 +167,8 @@ describe('AiAnalysis', () => {
       url: 'https://x', analysed_at: '2026-10-21T08:00:00Z', depth_analysis: 'fits',
     };
     const fetchMock = mockFetch({
-      'GET /v1/me/analyses/candidates': () => json(offered),
-      'GET /v1/me/analyses': () => json(stored),
+      'GET /v1/me/analyses/candidates': () => page(offered),
+      'GET /v1/me/analyses': () => page(stored),
       'POST /v1/me/analyze': () => {
         stored = [graded];
         offered = offered.slice(1);
@@ -196,8 +196,8 @@ describe('AiAnalysis', () => {
 
   it('opens a posting to read its description and pick it from there', async () => {
     mockFetch({
-      'GET /v1/me/analyses/candidates': json([candidate('j1', 'Go Dev')]),
-      'GET /v1/me/analyses': json([]),
+      'GET /v1/me/analyses/candidates': page([candidate('j1', 'Go Dev')]),
+      'GET /v1/me/analyses': page([]),
       'GET /v1/me/jobs/j1': json({ ...candidate('j1', 'Go Dev'), description: 'Write Go all day' }),
     });
     renderWithProviders(<AiAnalysis />);
@@ -211,8 +211,8 @@ describe('AiAnalysis', () => {
 
   it('links to the CVs page when there is no active CV', async () => {
     mockFetch({
-      'GET /v1/me/analyses/candidates': json([candidate('j1', 'Go Dev')]),
-      'GET /v1/me/analyses': json([]),
+      'GET /v1/me/analyses/candidates': page([candidate('j1', 'Go Dev')]),
+      'GET /v1/me/analyses': page([]),
       'POST /v1/me/analyze': json({ detail: 'no active CV' }, 409),
     });
     renderWithProviders(<AiAnalysis />);
@@ -241,8 +241,9 @@ describe('CvGeneration', () => {
     window.localStorage.setItem('jobbed.cvProfile', JSON.stringify({ name: 'Ana', contact: '', languages: [] }));
     let listed = [];
     mockFetch({
-      'GET /v1/me/analyses': json([graded]),
-      'GET /v1/me/generated-cvs': () => json(listed),
+      // Once it has a CV, the server no longer offers the posting.
+      'GET /v1/me/analyses/without-cv': () => page(listed.length ? [] : [graded]),
+      'GET /v1/me/generated-cvs': () => page(listed),
       'POST /v1/me/cvs/generate': json({ generation_id: 'g1' }, 202),
       'GET /v1/me/cvs/generate/g1': () => {
         listed = [generated];
@@ -259,7 +260,7 @@ describe('CvGeneration', () => {
     expect(await screen.findByRole('button', { name: 'Word' })).toBeEnabled();
     expect(screen.getByText(`Generated ${formatDateTime(generated.created_at)}`)).toBeInTheDocument();
     expect(screen.getAllByText('CV generated, review it before downloading')).toHaveLength(1);
-    expect(screen.getByText('Nothing waiting. Grade more postings in AI analysis.')).toBeInTheDocument();
+    expect(await screen.findByText('Nothing waiting. Grade more postings in AI analysis.')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Word' }));
     await waitFor(() => expect(downloadBlob).toHaveBeenCalledWith(expect.any(Blob), expect.stringMatching(/\.docx$/)));
@@ -268,8 +269,8 @@ describe('CvGeneration', () => {
   it('opens the new CV for review after generating it', async () => {
     let listed = [];
     mockFetch({
-      'GET /v1/me/analyses': json([graded]),
-      'GET /v1/me/generated-cvs': () => json(listed),
+      'GET /v1/me/analyses/without-cv': page([graded]),
+      'GET /v1/me/generated-cvs': () => page(listed),
       'POST /v1/me/cvs/generate': json({ generation_id: 'g1' }, 202),
       'GET /v1/me/cvs/generate/g1': () => {
         listed = [generated];
@@ -291,8 +292,8 @@ describe('CvGeneration', () => {
     let listed = [{ ...generated, cv: CV }];
     let sent = null;
     const fetchMock = mockFetch({
-      'GET /v1/me/analyses': json([]),
-      'GET /v1/me/generated-cvs': () => json(listed),
+      'GET /v1/me/analyses/without-cv': page([]),
+      'GET /v1/me/generated-cvs': () => page(listed),
       'PUT /v1/me/generated-cvs/c1': ({ body }) => {
         sent = body.cv;
         listed = [{ ...generated, cv: sent }];
@@ -314,14 +315,14 @@ describe('CvGeneration', () => {
     expect(sent.experiences).toEqual([{ ...CV.experiences[0], bullets: ['Cut latency by 30%.'] }]);
     expect(sent.skills).toEqual(CV.skills);
     const listCalls = fetchMock.mock.calls.filter(([url, init]) =>
-      url.endsWith('/v1/me/generated-cvs') && init.method === 'GET');
+      url.includes('/v1/me/generated-cvs?') && init.method === 'GET');
     expect(listCalls.length).toBeGreaterThan(1);
   });
 
   it('keeps the editor open when saving fails', async () => {
     mockFetch({
-      'GET /v1/me/analyses': json([]),
-      'GET /v1/me/generated-cvs': json([generated]),
+      'GET /v1/me/analyses/without-cv': page([]),
+      'GET /v1/me/generated-cvs': page([generated]),
       'PUT /v1/me/generated-cvs/c1': json({ detail: 'cv: bad shape' }, 422),
     });
     const user = userEvent.setup();
@@ -337,8 +338,8 @@ describe('CvGeneration', () => {
 
   it('puts the posting picked on the dashboard first', async () => {
     mockFetch({
-      'GET /v1/me/analyses': json([{ ...graded, job_id: 'j0', title: 'First' }, { ...graded, title: 'Picked' }]),
-      'GET /v1/me/generated-cvs': json([]),
+      'GET /v1/me/analyses/without-cv': page([{ ...graded, job_id: 'j0', title: 'First' }, { ...graded, title: 'Picked' }]),
+      'GET /v1/me/generated-cvs': page([]),
     });
     renderWithProviders(<CvGeneration />, { route: { pathname: '/cv-generation', state: { jobId: 'j1' } } });
 
@@ -353,8 +354,8 @@ describe('CvGeneration', () => {
 
     it('opens from a waiting posting row, but not from its Generate button', async () => {
       mockFetch({
-        'GET /v1/me/analyses': json([{ ...graded, depth_analysis: 'Lead with **Go**' }]),
-        'GET /v1/me/generated-cvs': json([]),
+        'GET /v1/me/analyses/without-cv': page([{ ...graded, depth_analysis: 'Lead with **Go**' }]),
+        'GET /v1/me/generated-cvs': page([]),
         'GET /v1/me/jobs/j1': posting,
         'POST /v1/me/cvs/generate': json({ generation_id: 'g1' }, 202),
         'GET /v1/me/cvs/generate/g1': json({ status: 'running', cv: null, error: null }),
@@ -373,8 +374,8 @@ describe('CvGeneration', () => {
 
     it('opens from a generated CV row, with a link to the posting', async () => {
       mockFetch({
-        'GET /v1/me/analyses': json([]),
-        'GET /v1/me/generated-cvs': json([{ ...generated, depth_analysis: 'Lead with **Go**' }]),
+        'GET /v1/me/analyses/without-cv': page([]),
+        'GET /v1/me/generated-cvs': page([{ ...generated, depth_analysis: 'Lead with **Go**' }]),
         'GET /v1/me/jobs/j1': posting,
       });
       const user = userEvent.setup();
@@ -387,8 +388,8 @@ describe('CvGeneration', () => {
 
     it('opens from the CV editor', async () => {
       mockFetch({
-        'GET /v1/me/analyses': json([]),
-        'GET /v1/me/generated-cvs': json([{ ...generated, depth_analysis: 'Lead with **Go**' }]),
+        'GET /v1/me/analyses/without-cv': page([]),
+        'GET /v1/me/generated-cvs': page([{ ...generated, depth_analysis: 'Lead with **Go**' }]),
         'GET /v1/me/jobs/j1': posting,
       });
       const user = userEvent.setup();
@@ -417,8 +418,8 @@ describe('CoverLetters', () => {
     let listed = [];
     let sent = null;
     mockFetch({
-      'GET /v1/me/generated-cvs': json([cv]),
-      'GET /v1/me/cover-letters': () => json(listed),
+      'GET /v1/me/generated-cvs': page([cv]),
+      'GET /v1/me/cover-letters': () => page(listed),
       'POST /v1/me/cover-letters/generate': ({ body }) => {
         sent = body;
         return json({ generation_id: 'g1' }, 202);
@@ -443,8 +444,8 @@ describe('CoverLetters', () => {
   it('saves an edited letter', async () => {
     let sent = null;
     mockFetch({
-      'GET /v1/me/generated-cvs': json([cv]),
-      'GET /v1/me/cover-letters': json([letter]),
+      'GET /v1/me/generated-cvs': page([cv]),
+      'GET /v1/me/cover-letters': page([letter]),
       'PUT /v1/me/cover-letters/l1': ({ body }) => {
         sent = body;
         return json({ ...letter, letter: body.letter });
@@ -464,8 +465,8 @@ describe('CoverLetters', () => {
 
   it('shows the job analysis and description in a drawer', async () => {
     mockFetch({
-      'GET /v1/me/generated-cvs': json([cv]),
-      'GET /v1/me/cover-letters': json([letter]),
+      'GET /v1/me/generated-cvs': page([cv]),
+      'GET /v1/me/cover-letters': page([letter]),
       'GET /v1/me/jobs/j1': json({ job_id: 'j1', company: 'Acme', title: 'Go Dev', url: 'https://x',
         scraped_at: '2026-10-20T08:00:00Z', description: 'We need Go.' }),
     });
@@ -482,7 +483,7 @@ describe('CoverLetters', () => {
   });
 
   it('offers no form before a CV is generated', async () => {
-    mockFetch({ 'GET /v1/me/generated-cvs': json([]), 'GET /v1/me/cover-letters': json([]) });
+    mockFetch({ 'GET /v1/me/generated-cvs': page([]), 'GET /v1/me/cover-letters': json([]) });
     renderWithProviders(<CoverLetters />);
 
     expect(await screen.findByText(/Generate a CV first/)).toBeInTheDocument();

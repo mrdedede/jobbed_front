@@ -1,9 +1,25 @@
 import { act, renderHook, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import ErrorBoundary from './ErrorBoundary.jsx';
+import Pager from './Pager.jsx';
 import StopAlert from './StopAlert.jsx';
 import { useCvs } from '../hooks/useCvs.js';
 import { json, mockFetch, renderWithProviders } from '../test/utils.jsx';
+
+describe('Pager', () => {
+  it('is hidden while one page holds everything', () => {
+    renderWithProviders(<Pager total={20} page={1} onChange={vi.fn()} />);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('shows one button per page and steps back from a page past the end', () => {
+    const onChange = vi.fn();
+    renderWithProviders(<Pager total={41} page={5} onChange={onChange} />);
+    expect(screen.getByRole('button', { name: '3' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '4' })).not.toBeInTheDocument();
+    expect(onChange).toHaveBeenCalledWith(3);
+  });
+});
 
 describe('StopAlert', () => {
   it.each([

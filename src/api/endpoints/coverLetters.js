@@ -55,11 +55,12 @@ export function getLetterGeneration(generationId, options) {
 /**
  * The user's cover letters, newest first.
  *
+ * @param {{limit?: number, offset?: number}=} page `limit` 1-100 (API default 20).
  * @param {Object=} options Request options, see `request` in client.js.
- * @return {Promise<CoverLetter[]>}
+ * @return {Promise<import('./analyses.js').Page<CoverLetter>>}
  */
-export function listCoverLetters(options) {
-  return api.get('/v1/me/cover-letters', options);
+export function listCoverLetters({ limit = 20, offset = 0 } = {}, options) {
+  return api.get(`/v1/me/cover-letters?limit=${limit}&offset=${offset}`, options);
 }
 
 /**

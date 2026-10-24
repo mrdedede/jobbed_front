@@ -51,11 +51,12 @@ export function getCvGeneration(generationId, options) {
 /**
  * The user's generated CVs, newest first.
  *
+ * @param {{limit?: number, offset?: number}=} page `limit` 1-100 (API default 20).
  * @param {Object=} options Request options, see `request` in client.js.
- * @return {Promise<GeneratedCv[]>}
+ * @return {Promise<import('./analyses.js').Page<GeneratedCv>>}
  */
-export function listGeneratedCvs(options) {
-  return api.get('/v1/me/generated-cvs', options);
+export function listGeneratedCvs({ limit = 20, offset = 0 } = {}, options) {
+  return api.get(`/v1/me/generated-cvs?limit=${limit}&offset=${offset}`, options);
 }
 
 /**

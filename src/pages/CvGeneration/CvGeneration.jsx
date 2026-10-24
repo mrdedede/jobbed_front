@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import JobDrawer from '../../components/JobDrawer.jsx';
+import { pageQuery } from '../../api/paging.js';
+import Pager from '../../components/Pager.jsx';
 import QueryState from '../../components/QueryState.jsx';
 import StopAlert from '../../components/StopAlert.jsx';
 import { formatDateTime } from '../../dateTime.js';
 import CvProfileForm from '../../components/cv/CvProfileForm.jsx';
 import GeneratedCvEditor from '../../components/cv/GeneratedCvEditor.jsx';
+import { listAnalysesWithoutCv } from '../../api/endpoints/analyses.js';
 import { updateGeneratedCv } from '../../api/endpoints/generatedCvs.js';
-import { useAnalyses } from '../../hooks/useAnalyses.js';
+import { useFetch } from '../../hooks/useFetch.js';
 import { useGenerateCv } from '../../hooks/useGenerateCv.js';
 import { cvFilename } from '../../cv/filename.js';
 import { downloadBlob } from '../../cv/download.js';
@@ -24,9 +27,16 @@ const stop = (event) => event.stopPropagation();
 
 export default function CvGeneration() {
   const [details, setDetails] = useState({ profile: null, photo: null });
-  const gen = useGenerateCv();
-  const analysesQuery = useAnalyses({ minGrade: MIN_GRADE });
-  const { analyses } = analysesQuery;
+  const [cvPage, setCvPage] = useState(1);
+  const [postingPage, setPostingPage] = useState(1);
+  const gen = useGenerateCv(cvPage);
+  // Graded postings that have no CV yet, filtered server-side.
+  const analysesQuery = useFetch(
+    (signal) => listAnalysesWithoutCv({ minGrade: MIN_GRADE, ...pageQuery(postingPage) }, { signal }),
+    [postingPage],
+  );
+  const analyses = analysesQuery.data?.items ?? [];
+  const refetchAnalyses = analysesQuery.refetch;
   const active = gen.status === 'starting' || gen.status === 'running';
   // `editing`: the GeneratedCv open in the editor, or null.
   const [editing, setEditing] = useState(null);
@@ -50,8 +60,10 @@ export default function CvGeneration() {
   useEffect(() => {
     if (gen.status === 'done') {
       notifications.show({ color: 'green', message: t('cv_generation_done') });
+      // Its posting now has a CV: it leaves the list below.
+      refetchAnalyses();
     }
-  }, [gen.status]);
+  }, [gen.status, refetchAnalyses]);
 
   // Open the new CV for review once the refetched list has it (the poll's
   // `cv` can be null, the list cannot).
@@ -65,6 +77,8 @@ export default function CvGeneration() {
 
   const generate = (jobId) => {
     setPendingJobId(jobId);
+    // Newest first: the new CV lands on page 1, where `fresh` looks for it.
+    setCvPage(1);
     gen.generate(jobId);
   };
 
@@ -74,14 +88,13 @@ export default function CvGeneration() {
     notifications.show({ color: 'green', message: t('cv_generation_saved') });
   };
 
-  // Coming from the dashboard's "Generate CV": that posting goes first.
+  // Coming from the dashboard's "Generate CV": that posting goes first, when
+  // it is on the page shown (best fit first, so usually page 1).
   const selectedJobId = useLocation().state?.jobId;
-  const eligible = useMemo(() => {
-    const done = new Set(gen.cvs.map((cv) => cv.job_id));
-    const waiting = analyses.filter((a) => !done.has(a.job_id));
-    const selected = waiting.filter((a) => a.job_id === selectedJobId);
-    return [...selected, ...waiting.filter((a) => a.job_id !== selectedJobId)];
-  }, [analyses, gen.cvs, selectedJobId]);
+  const eligible = [
+    ...analyses.filter((a) => a.job_id === selectedJobId),
+    ...analyses.filter((a) => a.job_id !== selectedJobId),
+  ];
 
   const download = async (cv, kind) => {
     try {
@@ -137,6 +150,7 @@ export default function CvGeneration() {
             ))}
           </Table.Tbody>
         </Table>
+        <Pager total={gen.total} page={cvPage} onChange={setCvPage} />
       </QueryState>
       {gen.cvs.length > 0 && (
         <Text size="sm" c="dimmed">{t('cv_generation_ai_warning')}</Text>
@@ -147,7 +161,7 @@ export default function CvGeneration() {
 
       <Title order={4}>{t('cv_generation_postings_title', { grade: MIN_GRADE })}</Title>
       <QueryState loading={analysesQuery.loading} error={analysesQuery.error}
-        hasData={analysesQuery.loaded} onRetry={analysesQuery.refetch} label={t('cv_generation_postings_label')}
+        hasData={analysesQuery.data !== null} onRetry={refetchAnalyses} label={t('cv_generation_postings_label')}
         empty={eligible.length === 0 && t('cv_generation_postings_empty')}>
         <Table highlightOnHover>
           <Table.Tbody>
@@ -171,6 +185,7 @@ export default function CvGeneration() {
             ))}
           </Table.Tbody>
         </Table>
+        <Pager total={analysesQuery.data?.total} page={postingPage} onChange={setPostingPage} />
       </QueryState>
 
       <JobDrawer job={drawerJob} onClose={() => setDrawerJob(null)} />
