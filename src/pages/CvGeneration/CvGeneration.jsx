@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import QueryState from '../../components/QueryState.jsx';
@@ -101,6 +101,8 @@ export default function CvGeneration() {
                 <Table.Td>
                   <Group gap="xs" justify="flex-end">
                     <Button size="xs" variant="default" onClick={() => setEditing(cv)}>{t('cv_generation_review')}</Button>
+                    <Button size="xs" variant="default" component={Link} to="/cover-letters"
+                      state={{ cvId: cv.cv_id }}>{t('cv_generation_cover_letter')}</Button>
                     <Button size="xs" variant="light" disabled={!details.profile?.name}
                       onClick={() => download(cv, 'docx')}>{t('cv_generation_word')}</Button>
                     <Button size="xs" variant="light" disabled={!details.profile?.name}

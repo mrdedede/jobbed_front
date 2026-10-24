@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import AiAnalysis from './AiAnalysis/AiAnalysis.jsx';
+import CoverLetters from './CoverLetters/CoverLetters.jsx';
 import CvGeneration from './CvGeneration/CvGeneration.jsx';
 import Cvs from './Cvs/Cvs.jsx';
 import Keywords from './Keywords/Keywords.jsx';
@@ -338,5 +339,93 @@ describe('CvGeneration', () => {
 
     const rows = await screen.findAllByRole('button', { name: 'Generate' });
     expect(rows[0].closest('tr')).toHaveTextContent('Picked');
+  });
+});
+
+describe('CoverLetters', () => {
+  const cv = {
+    cv_id: 'c1', job_id: 'j1', title: 'Go Dev', company: 'Acme', adequation_grade: 80, locale: 'fr',
+    depth_analysis: 'Lead with **Go**', cv: {},
+  };
+  const letter = {
+    letter_id: 'l1', cv_id: 'c1', job_id: 'j1', title: 'Go Dev', company: 'Acme', adequation_grade: 80,
+    depth_analysis: 'Lead with **Go**', locale: 'fr', answers: { motivation: 'I love Go', career_fit: '', offer_fit: '' },
+    letter: 'Madame, Monsieur,\n\nJe postule.', created_at: '2026-10-24T08:00:00Z',
+  };
+
+  it('writes a letter from the CV picked on the CV page with the answers, then opens it', async () => {
+    let listed = [];
+    let sent = null;
+    mockFetch({
+      'GET /v1/me/generated-cvs': json([cv]),
+      'GET /v1/me/cover-letters': () => json(listed),
+      'POST /v1/me/cover-letters/generate': ({ body }) => {
+        sent = body;
+        return json({ generation_id: 'g1' }, 202);
+      },
+      'GET /v1/me/cover-letters/generate/g1': () => {
+        listed = [letter];
+        return json({ status: 'done', letter, error: null });
+      },
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<CoverLetters />, { route: { pathname: '/cover-letters', state: { cvId: 'c1' } } });
+    await screen.findByText('No cover letter written yet.');
+
+    await user.type(screen.getByLabelText(/Why is this job interesting/), 'I love Go');
+    await user.click(screen.getByRole('button', { name: 'Write letter' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText('Letter')).toHaveValue(letter.letter);
+    expect(sent).toEqual({ cv_id: 'c1', answers: { motivation: 'I love Go', career_fit: '', offer_fit: '' } });
+  });
+
+  it('saves an edited letter', async () => {
+    let sent = null;
+    mockFetch({
+      'GET /v1/me/generated-cvs': json([cv]),
+      'GET /v1/me/cover-letters': json([letter]),
+      'PUT /v1/me/cover-letters/l1': ({ body }) => {
+        sent = body;
+        return json({ ...letter, letter: body.letter });
+      },
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<CoverLetters />);
+
+    await user.click(await screen.findByRole('button', { name: 'Review / edit' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Letter'), ' Merci.');
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(sent).toEqual({ letter: `${letter.letter} Merci.` });
+  });
+
+  it('shows the job analysis and description in a drawer', async () => {
+    mockFetch({
+      'GET /v1/me/generated-cvs': json([cv]),
+      'GET /v1/me/cover-letters': json([letter]),
+      'GET /v1/me/jobs/j1': json({ job_id: 'j1', company: 'Acme', title: 'Go Dev', url: 'https://x',
+        scraped_at: '2026-10-20T08:00:00Z', description: 'We need Go.' }),
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<CoverLetters />);
+
+    // The first "Job details" is the form's, the second the letter row's.
+    const [, rowButton] = await screen.findAllByRole('button', { name: 'Job details' });
+    await user.click(rowButton);
+
+    const drawer = await screen.findByRole('dialog');
+    expect(within(drawer).getByText('Go')).toBeInTheDocument();
+    expect(await within(drawer).findByText('We need Go.')).toBeInTheDocument();
+  });
+
+  it('offers no form before a CV is generated', async () => {
+    mockFetch({ 'GET /v1/me/generated-cvs': json([]), 'GET /v1/me/cover-letters': json([]) });
+    renderWithProviders(<CoverLetters />);
+
+    expect(await screen.findByText(/Generate a CV first/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Write letter' })).not.toBeInTheDocument();
   });
 });

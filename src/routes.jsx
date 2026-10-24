@@ -10,6 +10,7 @@ export const navRoutes = [
   { path: '/cvs', label: t('nav_cvs'), Page: lazy(() => import('./pages/Cvs/Cvs.jsx')) },
   { path: '/ai-analysis', label: t('nav_ai_analysis'), Page: lazy(() => import('./pages/AiAnalysis/AiAnalysis.jsx')) },
   { path: '/cv-generation', label: t('nav_cv_generation'), Page: lazy(() => import('./pages/CvGeneration/CvGeneration.jsx')) },
+  { path: '/cover-letters', label: t('nav_cover_letters'), Page: lazy(() => import('./pages/CoverLetters/CoverLetters.jsx')) },
 ];
 
 /** Routed pages that are not in the sidebar. */

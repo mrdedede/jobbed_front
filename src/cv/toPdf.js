@@ -1,4 +1,4 @@
-const escape = (text) => text.replace(/[&<>"']/g, (c) => (
+export const escape = (text) => text.replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
 ));
 
@@ -36,15 +36,15 @@ ${doc.sections.map((s) => `<h2>${escape(s.title)}</h2>${s.lines.map(line).join('
 const CLEANUP_FALLBACK_MS = 60_000;
 
 /**
- * Opens the browser's print dialog on the CV; "Save as PDF" there makes the file.
- * No PDF library, so nothing to keep in step with the Word layout beyond text.
+ * Opens the browser's print dialog on a standalone HTML document; "Save as PDF"
+ * there makes the file. No PDF library, so nothing to keep in step with the
+ * Word layout beyond text.
  *
- * @param {CvDocument} doc
- * @param {?Blob} photo
+ * @param {string} html
+ * @param {function(): void=} onCleanup Runs once the frame is gone.
  * @return {Promise<void>} Resolves once the dialog was requested.
  */
-export function printPdf(doc, photo) {
-  const photoUrl = photo ? URL.createObjectURL(photo) : null;
+export function printHtml(html, onCleanup = () => {}) {
   const frame = document.createElement('iframe');
   frame.style.cssText = 'position:fixed;width:0;height:0;border:0;visibility:hidden';
   document.body.appendChild(frame);
@@ -55,7 +55,7 @@ export function printPdf(doc, photo) {
       if (cleaned) return;
       cleaned = true;
       frame.remove();
-      if (photoUrl) URL.revokeObjectURL(photoUrl);
+      onCleanup();
     };
     frame.onload = () => {
       frame.contentWindow.addEventListener('afterprint', cleanup);
@@ -64,6 +64,20 @@ export function printPdf(doc, photo) {
       frame.contentWindow.print();
       resolve();
     };
-    frame.srcdoc = toHtml(doc, photoUrl);
+    frame.srcdoc = html;
+  });
+}
+
+/**
+ * Prints the CV, see `printHtml`.
+ *
+ * @param {CvDocument} doc
+ * @param {?Blob} photo
+ * @return {Promise<void>} Resolves once the dialog was requested.
+ */
+export function printPdf(doc, photo) {
+  const photoUrl = photo ? URL.createObjectURL(photo) : null;
+  return printHtml(toHtml(doc, photoUrl), () => {
+    if (photoUrl) URL.revokeObjectURL(photoUrl);
   });
 }
