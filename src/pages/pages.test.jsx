@@ -6,6 +6,7 @@ import CoverLetters from './CoverLetters/CoverLetters.jsx';
 import CvGeneration from './CvGeneration/CvGeneration.jsx';
 import Cvs from './Cvs/Cvs.jsx';
 import Keywords from './Keywords/Keywords.jsx';
+import { formatGradedAt } from '../components/analysis/gradedAt.js';
 import { downloadBlob } from '../cv/download.js';
 import { json, mockFetch, renderWithProviders } from '../test/utils.jsx';
 
@@ -188,6 +189,7 @@ describe('AiAnalysis', () => {
     expect(await screen.findByRole('button', { name: 'Open the analysis of Go Dev at Acme' }))
       .toBeInTheDocument();
     expect(screen.getByText('Analysis finished')).toBeInTheDocument();
+    expect(screen.getByText(formatGradedAt(graded.analysed_at))).toBeInTheDocument();
     // Go Dev is graded and no longer offered; Rust Dev stays picked.
     expect(await screen.findByRole('button', { name: 'Analyse 1 selected' })).toBeInTheDocument();
   });

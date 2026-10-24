@@ -94,6 +94,8 @@
     "analysis_col_company": "Company",
     "analysis_col_title": "Title",
     "analysis_col_place": "Place",
+    "analysis_col_graded": "Graded",
+    "analysis_graded_at": "Graded {when}",
     "analysis_row_label": "Open the analysis of {title} at {company}",
     "analysis_drawer_title": "{title} - {company}",
     "analysis_open_posting": "Open posting",
