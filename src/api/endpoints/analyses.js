@@ -12,6 +12,14 @@ import { api } from '../client.js';
 const ANALYZE_TIMEOUT_MS = 170_000;
 
 /**
+ * Listing candidates filters every ungraded posting server-side. Cached after
+ * the first call, but that first call after an ingest can take minutes on a
+ * small host (~100 s on the phone sandbox with an 84k-posting backlog). Same
+ * ceiling as analyze, for the same reason.
+ */
+const CANDIDATES_TIMEOUT_MS = 170_000;
+
+/**
  * @typedef {Object} Analysis
  * @property {string} job_id
  * @property {?number} adequation_grade 0-100.
@@ -92,7 +100,8 @@ export function listAnalyses({ limit, minGrade, sinceDays } = {}, options) {
 export function listCandidates(windowDays, options) {
   const queryString =
     windowDays === undefined ? '' : `?window_days=${windowDays}`;
-  return api.get(`/v1/me/analyses/candidates${queryString}`, options);
+  return api.get(`/v1/me/analyses/candidates${queryString}`,
+    { timeout: CANDIDATES_TIMEOUT_MS, ...options });
 }
 
 /**
