@@ -251,6 +251,7 @@ describe('CvGeneration', () => {
     const user = userEvent.setup();
     renderWithProviders(<CvGeneration />);
     await screen.findByText('No CV generated yet.');
+    expect(screen.getByText(`Graded ${formatGradedAt(graded.analysed_at)}`)).toBeInTheDocument();
 
     await user.click(await screen.findByRole('button', { name: 'Generate' }));
 

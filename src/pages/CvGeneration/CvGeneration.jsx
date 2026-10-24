@@ -5,6 +5,7 @@ import { notifications } from '@mantine/notifications';
 import JobDrawer from '../../components/JobDrawer.jsx';
 import QueryState from '../../components/QueryState.jsx';
 import StopAlert from '../../components/StopAlert.jsx';
+import { formatGradedAt } from '../../components/analysis/gradedAt.js';
 import CvProfileForm from '../../components/cv/CvProfileForm.jsx';
 import GeneratedCvEditor from '../../components/cv/GeneratedCvEditor.jsx';
 import { updateGeneratedCv } from '../../api/endpoints/generatedCvs.js';
@@ -152,6 +153,9 @@ export default function CvGeneration() {
                 <Table.Td>{a.company}</Table.Td>
                 <Table.Td>{a.title}</Table.Td>
                 <Table.Td onClick={stop}>
+                  <Text size="sm" c="dimmed">{t('analysis_graded_at', { when: formatGradedAt(a.analysed_at) })}</Text>
+                </Table.Td>
+                <Table.Td>
                   <Group justify="flex-end">
                     <Button size="xs" disabled={active} onClick={() => generate(a.job_id)}>
                       {t('cv_generation_generate')}
