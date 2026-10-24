@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Anchor, Button, Checkbox, Drawer, ScrollArea, Stack, Table, Text } from '@mantine/core';
+import { Anchor, Button, Center, Checkbox, Drawer, ScrollArea, Stack, Table, Text } from '@mantine/core';
 import { getJob } from '../../api/endpoints/analyses.js';
 import QueryState from '../QueryState.jsx';
 import { useFetch } from '../../hooks/useFetch.js';
@@ -30,13 +30,17 @@ function JobDetail({ jobId, picked, onToggle }) {
 }
 
 /**
- * One page of ungraded postings to pick from. The checkbox picks a row; clicking the row
+ * Ungraded postings to pick from, loaded in batches as the list scrolls. The checkbox picks a row; clicking the row
  * (or Enter / Space on it) opens its description in a drawer.
  *
- * @param {{candidates: Candidate[], picked: Set<string>,
+ * @param {{candidates: Candidate[], total: ?number, loading?: boolean,
+ *     onLoadMore: function(): void, picked: Set<string>,
  *     onPickedChange: function(Set<string>): void, disabled?: boolean}} props
+ *     `candidates` are the rows loaded so far, `total` all there are.
  */
-export default function CandidateTable({ candidates, picked, onPickedChange, disabled = false }) {
+export default function CandidateTable({
+  candidates, total, loading = false, onLoadMore, picked, onPickedChange, disabled = false,
+}) {
   const [open, setOpen] = useState(null);
 
   if (candidates.length === 0) return <Text c="dimmed">{t('candidates_none')}</Text>;
@@ -48,25 +52,16 @@ export default function CandidateTable({ candidates, picked, onPickedChange, dis
   };
   const all = candidates.every((c) => picked.has(c.job_id));
   const some = !all && candidates.some((c) => picked.has(c.job_id));
-  // Picks on other pages survive (un)picking all of this one.
-  const pickPage = () => {
-    const next = new Set(picked);
-    for (const { job_id: jobId } of candidates) {
-      if (all) next.delete(jobId);
-      else next.add(jobId);
-    }
-    onPickedChange(next);
-  };
 
   return (
     <>
-      <ScrollArea.Autosize mah={420}>
+      <ScrollArea.Autosize mah={420} onBottomReached={onLoadMore}>
         <Table highlightOnHover stickyHeader>
           <Table.Thead>
             <Table.Tr>
               <Table.Th w={40}>
                 <Checkbox aria-label={t('candidates_pick_all')} checked={all} indeterminate={some} disabled={disabled}
-                  onChange={pickPage} />
+                  onChange={() => onPickedChange(all ? new Set() : new Set(candidates.map((c) => c.job_id)))} />
               </Table.Th>
               <Table.Th>{t('analysis_col_title')}</Table.Th><Table.Th>{t('analysis_col_company')}</Table.Th>
               <Table.Th>{t('analysis_col_place')}</Table.Th><Table.Th>{t('candidates_col_scraped')}</Table.Th>
@@ -97,6 +92,14 @@ export default function CandidateTable({ candidates, picked, onPickedChange, dis
             ))}
           </Table.Tbody>
         </Table>
+        {/* Scrolling to the bottom loads more on its own; the button is for keyboards. */}
+        {total > candidates.length && (
+          <Center p="xs">
+            <Button size="xs" variant="subtle" loading={loading} onClick={onLoadMore}>
+              {t('candidates_load_more', { shown: candidates.length, total })}
+            </Button>
+          </Center>
+        )}
       </ScrollArea.Autosize>
 
       <Drawer opened={open !== null} onClose={() => setOpen(null)} position="right" size="lg"

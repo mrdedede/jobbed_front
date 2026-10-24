@@ -159,6 +159,33 @@ describe('AiAnalysis', () => {
     scraped_at: '2026-10-21T08:00:00Z',
   });
 
+  it('loads more candidates on demand and keeps the earlier picks', async () => {
+    const offered = Array.from({ length: 25 }, (_, i) => candidate(`j${i}`, `Job ${i}`));
+    const fetchMock = mockFetch({
+      'GET /v1/me/analyses/candidates': ({ url }) => {
+        const query = new URL(url, 'http://test').searchParams;
+        const offset = Number(query.get('offset'));
+        return page(offered.slice(offset, offset + Number(query.get('limit'))), offered.length);
+      },
+      'GET /v1/me/analyses': page([]),
+      // Fails, so no "finished" notification outlives this test.
+      'POST /v1/me/analyze': json({ detail: 'every grading call failed' }, 502),
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<AiAnalysis />);
+
+    await user.click(await screen.findByRole('checkbox', { name: 'Select Job 0' }));
+    expect(screen.queryByRole('checkbox', { name: 'Select Job 24' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Show more (20 of 25)' }));
+    await user.click(await screen.findByRole('checkbox', { name: 'Select Job 24' }));
+
+    expect(screen.getByRole('checkbox', { name: 'Select Job 0' })).toBeChecked();
+    expect(screen.queryByRole('button', { name: /Show more/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Analyse 2 selected' }));
+    const [, init] = fetchMock.mock.calls.find(([path]) => path === '/v1/me/analyze');
+    expect(JSON.parse(init.body).job_ids).toEqual(['j0', 'j24']);
+  });
+
   it('grades only the picked postings and shows the new grades', async () => {
     let stored = [];
     let offered = [candidate('j1', 'Go Dev'), candidate('j2', 'Py Dev'), candidate('j3', 'Rust Dev')];

@@ -110,6 +110,7 @@
     "candidates_pick": "Select for analysis",
     "candidates_unpick": "Remove from selection",
     "candidates_no_description": "No description.",
+    "candidates_load_more": "Show more ({shown} of {total})",
     "grade_charts_grades": "Grades",
     "grade_charts_average_per_day": "Average grade per day",
     "grade_charts_series_count": "count",
