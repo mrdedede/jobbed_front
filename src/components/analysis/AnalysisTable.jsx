@@ -10,7 +10,7 @@ function gradeColor(grade) {
   return 'red';
 }
 
-function GradeBadge({ grade }) {
+export function GradeBadge({ grade }) {
   return grade == null
     ? <Badge color="gray" variant="light">{t('analysis_not_graded')}</Badge>
     : <Badge color={gradeColor(grade)}>{grade}</Badge>;
