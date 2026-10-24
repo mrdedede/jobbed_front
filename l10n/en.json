@@ -179,6 +179,7 @@
     "cv_generation_saved": "CV saved",
     "cv_generation_writing": "Writing your CV, this can take a minute...",
     "cv_generation_generated_title": "Generated CVs",
+    "cv_generation_generated_at": "Generated {when}",
     "cv_generation_generated_label": "generated CVs",
     "cv_generation_generated_empty": "No CV generated yet.",
     "cv_generation_review": "Review / edit",

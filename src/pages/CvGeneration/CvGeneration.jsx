@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
+import { Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import JobDrawer from '../../components/JobDrawer.jsx';
 import QueryState from '../../components/QueryState.jsx';
 import StopAlert from '../../components/StopAlert.jsx';
-import { formatGradedAt } from '../../components/analysis/gradedAt.js';
+import { formatDateTime } from '../../dateTime.js';
 import CvProfileForm from '../../components/cv/CvProfileForm.jsx';
 import GeneratedCvEditor from '../../components/cv/GeneratedCvEditor.jsx';
 import { updateGeneratedCv } from '../../api/endpoints/generatedCvs.js';
@@ -115,9 +115,14 @@ export default function CvGeneration() {
               <Table.Tr key={cv.cv_id} {...openRow(cv)}>
                 <Table.Td><Badge>{cv.adequation_grade}</Badge></Table.Td>
                 <Table.Td>{cv.company}</Table.Td>
-                <Table.Td>{cv.title}</Table.Td>
+                <Table.Td>
+                  <Anchor href={cv.url} target="_blank" rel="noreferrer" size="sm">{cv.title}</Anchor>
+                </Table.Td>
                 <Table.Td>{cv.locale}</Table.Td>
                 <Table.Td onClick={stop}>
+                  <Text size="sm" c="dimmed">{t('cv_generation_generated_at', { when: formatDateTime(cv.created_at) })}</Text>
+                </Table.Td>
+                <Table.Td>
                   <Group gap="xs" justify="flex-end">
                     <Button size="xs" variant="default" onClick={() => setEditing(cv)}>{t('cv_generation_review')}</Button>
                     <Button size="xs" variant="default" component={Link} to="/cover-letters"
@@ -153,7 +158,7 @@ export default function CvGeneration() {
                 <Table.Td>{a.company}</Table.Td>
                 <Table.Td>{a.title}</Table.Td>
                 <Table.Td onClick={stop}>
-                  <Text size="sm" c="dimmed">{t('analysis_graded_at', { when: formatGradedAt(a.analysed_at) })}</Text>
+                  <Text size="sm" c="dimmed">{t('analysis_graded_at', { when: formatDateTime(a.analysed_at) })}</Text>
                 </Table.Td>
                 <Table.Td>
                   <Group justify="flex-end">

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Anchor, Badge, Drawer, Stack, Table, Text, Typography } from '@mantine/core';
 import ReactMarkdown from 'react-markdown';
 import { t } from '../../l10n.js';
-import { formatGradedAt } from './gradedAt.js';
+import { formatDateTime } from '../../dateTime.js';
 
 function gradeColor(grade) {
   if (grade >= 80) return 'green';
@@ -53,7 +53,7 @@ export default function AnalysisTable({ analyses }) {
               <Table.Td>{analysis.company}</Table.Td>
               <Table.Td>{analysis.title}</Table.Td>
               <Table.Td>{analysis.place}</Table.Td>
-              <Table.Td>{formatGradedAt(analysis.analysed_at)}</Table.Td>
+              <Table.Td>{formatDateTime(analysis.analysed_at)}</Table.Td>
             </Table.Tr>
           ))}
         </Table.Tbody>
@@ -64,7 +64,7 @@ export default function AnalysisTable({ analyses }) {
         {selected && (
           <Stack>
             <GradeBadge grade={selected.adequation_grade} />
-            <Text size="sm" c="dimmed">{t('analysis_graded_at', { when: formatGradedAt(selected.analysed_at) })}</Text>
+            <Text size="sm" c="dimmed">{t('analysis_graded_at', { when: formatDateTime(selected.analysed_at) })}</Text>
             <Anchor href={selected.url} target="_blank" rel="noreferrer">{t('analysis_open_posting')}</Anchor>
             {selected.depth_analysis
               ? <Typography><ReactMarkdown>{selected.depth_analysis}</ReactMarkdown></Typography>

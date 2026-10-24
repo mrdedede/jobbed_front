@@ -6,7 +6,7 @@ import CoverLetters from './CoverLetters/CoverLetters.jsx';
 import CvGeneration from './CvGeneration/CvGeneration.jsx';
 import Cvs from './Cvs/Cvs.jsx';
 import Keywords from './Keywords/Keywords.jsx';
-import { formatGradedAt } from '../components/analysis/gradedAt.js';
+import { formatDateTime } from '../dateTime.js';
 import { downloadBlob } from '../cv/download.js';
 import { json, mockFetch, renderWithProviders } from '../test/utils.jsx';
 
@@ -189,7 +189,7 @@ describe('AiAnalysis', () => {
     expect(await screen.findByRole('button', { name: 'Open the analysis of Go Dev at Acme' }))
       .toBeInTheDocument();
     expect(screen.getByText('Analysis finished')).toBeInTheDocument();
-    expect(screen.getByText(formatGradedAt(graded.analysed_at))).toBeInTheDocument();
+    expect(screen.getByText(formatDateTime(graded.analysed_at))).toBeInTheDocument();
     // Go Dev is graded and no longer offered; Rust Dev stays picked.
     expect(await screen.findByRole('button', { name: 'Analyse 1 selected' })).toBeInTheDocument();
   });
@@ -231,6 +231,7 @@ describe('CvGeneration', () => {
   };
   const generated = {
     cv_id: 'c1', job_id: 'j1', title: 'Go Dev', company: 'Acme', adequation_grade: 80, locale: 'en',
+    created_at: '2026-10-22T09:30:00Z',
     cv: {
       cv_introduction: 'Hi', profile_text: 'Engineer', skills: [], experiences: [], education: [],
     },
@@ -251,11 +252,12 @@ describe('CvGeneration', () => {
     const user = userEvent.setup();
     renderWithProviders(<CvGeneration />);
     await screen.findByText('No CV generated yet.');
-    expect(screen.getByText(`Graded ${formatGradedAt(graded.analysed_at)}`)).toBeInTheDocument();
+    expect(screen.getByText(`Graded ${formatDateTime(graded.analysed_at)}`)).toBeInTheDocument();
 
     await user.click(await screen.findByRole('button', { name: 'Generate' }));
 
     expect(await screen.findByRole('button', { name: 'Word' })).toBeEnabled();
+    expect(screen.getByText(`Generated ${formatDateTime(generated.created_at)}`)).toBeInTheDocument();
     expect(screen.getAllByText('CV generated, review it before downloading')).toHaveLength(1);
     expect(screen.getByText('Nothing waiting. Grade more postings in AI analysis.')).toBeInTheDocument();
 
