@@ -119,10 +119,10 @@ export default function CvGeneration() {
                   <Anchor href={cv.url} target="_blank" rel="noreferrer" size="sm">{cv.title}</Anchor>
                 </Table.Td>
                 <Table.Td>{cv.locale}</Table.Td>
-                <Table.Td onClick={stop}>
+                <Table.Td>
                   <Text size="sm" c="dimmed">{t('cv_generation_generated_at', { when: formatDateTime(cv.created_at) })}</Text>
                 </Table.Td>
-                <Table.Td>
+                <Table.Td onClick={stop}>
                   <Group gap="xs" justify="flex-end">
                     <Button size="xs" variant="default" onClick={() => setEditing(cv)}>{t('cv_generation_review')}</Button>
                     <Button size="xs" variant="default" component={Link} to="/cover-letters"
@@ -157,10 +157,10 @@ export default function CvGeneration() {
                 <Table.Td><Badge>{a.adequation_grade}</Badge></Table.Td>
                 <Table.Td>{a.company}</Table.Td>
                 <Table.Td>{a.title}</Table.Td>
-                <Table.Td onClick={stop}>
+                <Table.Td>
                   <Text size="sm" c="dimmed">{t('analysis_graded_at', { when: formatDateTime(a.analysed_at) })}</Text>
                 </Table.Td>
-                <Table.Td>
+                <Table.Td onClick={stop}>
                   <Group justify="flex-end">
                     <Button size="xs" disabled={active} onClick={() => generate(a.job_id)}>
                       {t('cv_generation_generate')}
