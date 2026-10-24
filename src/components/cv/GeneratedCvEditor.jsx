@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   ActionIcon, Alert, Badge, Button, Group, Modal, Paper, Stack, Text, TextInput, Textarea, Title,
 } from '@mantine/core';
+import JobDrawer from '../JobDrawer.jsx';
 import { t } from '../../l10n.js';
 
 const EXPERIENCE_FIELDS = [
@@ -53,6 +54,7 @@ export default function GeneratedCvEditor({ generated, onClose, onSave }) {
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [showJob, setShowJob] = useState(false);
 
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
 
@@ -92,6 +94,9 @@ export default function GeneratedCvEditor({ generated, onClose, onSave }) {
         <Alert color="yellow">
           {t('cv_review_ai_warning')}
         </Alert>
+        <Group>
+          <Button variant="default" size="xs" onClick={() => setShowJob(true)}>{t('cover_letter_job_details')}</Button>
+        </Group>
 
         <TextInput label={t('cv_review_introduction')} value={form.cv_introduction}
           onChange={(event) => set('cv_introduction', event.currentTarget.value)} />
@@ -142,6 +147,7 @@ export default function GeneratedCvEditor({ generated, onClose, onSave }) {
           <Button loading={saving} onClick={save}>{t('common_save')}</Button>
         </Group>
       </Stack>
+      <JobDrawer job={showJob ? generated : null} onClose={() => setShowJob(false)} />
     </Modal>
   );
 }

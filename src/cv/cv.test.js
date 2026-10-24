@@ -7,6 +7,7 @@ import { buildDocument } from './model.js';
 import { sections } from './sections.js';
 import { toDocx } from './toDocx.js';
 import { toHtml } from './toPdf.js';
+import { letterHtml, letterParagraphs, letterToDocx } from './letter.js';
 
 // Mirrors tests/test_docx_gen.py in the back end, line for line.
 describe('sections', () => {
@@ -102,6 +103,30 @@ describe('toDocx', () => {
     expect(text).not.toMatch(/[{}]/);
     for (const needle of ['Ana Souza', 'Backend Engineer', 'Cut p99 latency by 40%.', 'Français, C1 - Courant']) {
       expect(text).toContain(needle);
+    }
+  });
+});
+
+describe('cover letter', () => {
+  const LETTER = 'Madame, Monsieur,\n\nJe postule.\nLigne deux.\n\n\n  Cordialement,  ';
+
+  it('splits paragraphs on blank lines only', () => {
+    expect(letterParagraphs(LETTER)).toEqual(['Madame, Monsieur,', 'Je postule.\nLigne deux.', 'Cordialement,']);
+  });
+
+  it('escapes the html and signs with the name', () => {
+    const html = letterHtml('<i>x</i>', { name: 'Ana', contact: 'a@b.c' });
+    expect(html).toContain('&lt;i&gt;x&lt;/i&gt;');
+    expect(html.trim().endsWith('<p>Ana</p>\n</body></html>')).toBe(true);
+  });
+
+  it('writes every paragraph and the sender into the docx', async () => {
+    const blob = await letterToDocx(LETTER, { name: 'Ana', contact: 'a@b.c' });
+    const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+    const text = (await zip.file('word/document.xml').async('string')).replace(/<[^>]+>/g, ' ');
+
+    for (const part of ['Ana', 'a@b.c', 'Madame, Monsieur,', 'Je postule.', 'Ligne deux.', 'Cordialement,']) {
+      expect(text).toContain(part);
     }
   });
 });

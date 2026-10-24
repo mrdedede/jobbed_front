@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import JobDrawer from '../../components/JobDrawer.jsx';
 import QueryState from '../../components/QueryState.jsx';
 import StopAlert from '../../components/StopAlert.jsx';
 import CvProfileForm from '../../components/cv/CvProfileForm.jsx';
@@ -17,6 +18,9 @@ import { t } from '../../l10n.js';
 
 const MIN_GRADE = 50;
 
+// The cell holding a row's buttons: its clicks must not open the row.
+const stop = (event) => event.stopPropagation();
+
 export default function CvGeneration() {
   const [details, setDetails] = useState({ profile: null, photo: null });
   const gen = useGenerateCv();
@@ -27,6 +31,20 @@ export default function CvGeneration() {
   const [editing, setEditing] = useState(null);
   // The posting last sent to Generate, until its CV shows up in the list.
   const [pendingJobId, setPendingJobId] = useState(null);
+  // The posting shown in the drawer: an analysis or a generated CV, both carry the analysis.
+  const [drawerJob, setDrawerJob] = useState(null);
+
+  // Props that open a row's posting in the drawer, by click or Enter/Space.
+  const openRow = (row) => ({
+    style: { cursor: 'pointer' }, tabIndex: 0, role: 'button',
+    'aria-label': t('analysis_row_label', { title: row.title, company: row.company }),
+    onClick: () => setDrawerJob(row),
+    onKeyDown: (event) => {
+      if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+      event.preventDefault();
+      setDrawerJob(row);
+    },
+  });
 
   useEffect(() => {
     if (gen.status === 'done') {
@@ -90,17 +108,19 @@ export default function CvGeneration() {
       <Title order={4}>{t('cv_generation_generated_title')}</Title>
       <QueryState loading={gen.loading} error={gen.listError} hasData={gen.loaded}
         label={t('cv_generation_generated_label')} empty={gen.cvs.length === 0 && t('cv_generation_generated_empty')}>
-        <Table>
+        <Table highlightOnHover>
           <Table.Tbody>
             {gen.cvs.map((cv) => (
-              <Table.Tr key={cv.cv_id}>
+              <Table.Tr key={cv.cv_id} {...openRow(cv)}>
                 <Table.Td><Badge>{cv.adequation_grade}</Badge></Table.Td>
                 <Table.Td>{cv.company}</Table.Td>
                 <Table.Td>{cv.title}</Table.Td>
                 <Table.Td>{cv.locale}</Table.Td>
-                <Table.Td>
+                <Table.Td onClick={stop}>
                   <Group gap="xs" justify="flex-end">
                     <Button size="xs" variant="default" onClick={() => setEditing(cv)}>{t('cv_generation_review')}</Button>
+                    <Button size="xs" variant="default" component={Link} to="/cover-letters"
+                      state={{ cvId: cv.cv_id }}>{t('cv_generation_cover_letter')}</Button>
                     <Button size="xs" variant="light" disabled={!details.profile?.name}
                       onClick={() => download(cv, 'docx')}>{t('cv_generation_word')}</Button>
                     <Button size="xs" variant="light" disabled={!details.profile?.name}
@@ -126,11 +146,12 @@ export default function CvGeneration() {
         <Table highlightOnHover>
           <Table.Tbody>
             {eligible.map((a) => (
-              <Table.Tr key={a.job_id} bg={a.job_id === selectedJobId ? 'var(--mantine-primary-color-light)' : undefined}>
+              <Table.Tr key={a.job_id} bg={a.job_id === selectedJobId ? 'var(--mantine-primary-color-light)' : undefined}
+                {...openRow(a)}>
                 <Table.Td><Badge>{a.adequation_grade}</Badge></Table.Td>
                 <Table.Td>{a.company}</Table.Td>
                 <Table.Td>{a.title}</Table.Td>
-                <Table.Td>
+                <Table.Td onClick={stop}>
                   <Group justify="flex-end">
                     <Button size="xs" disabled={active} onClick={() => generate(a.job_id)}>
                       {t('cv_generation_generate')}
@@ -143,6 +164,7 @@ export default function CvGeneration() {
         </Table>
       </QueryState>
 
+      <JobDrawer job={drawerJob} onClose={() => setDrawerJob(null)} />
       {editing && <GeneratedCvEditor generated={editing} onClose={() => setEditing(null)} onSave={saveEdit} />}
     </Stack>
   );
