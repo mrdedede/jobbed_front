@@ -3,6 +3,7 @@ import {
   getCvGeneration, listGeneratedCvs, startCvGeneration,
 } from '../api/endpoints/generatedCvs.js';
 import { toStopReason } from '../api/stopReason.js';
+import { pageQuery } from '../api/paging.js';
 import { useAsyncJob } from './useAsyncJob.js';
 import { useFetch } from './useFetch.js';
 import { usePolling } from './usePolling.js';
@@ -37,24 +38,27 @@ function stopReasonOf(job, labels) {
  *
  * @param {{start: function(*, Object): Promise<{generation_id: string}>,
  *     poll: function(string, Object): Promise<Object>,
- *     list: function(Object): Promise<Array>,
+ *     list: function({limit: number, offset: number}, Object): Promise<Page>,
  *     labels: {doing: string, thing: string}}} kind
+ * @param {number=} page The 1-based page of the list to show.
  * @return {{generate: function(*): Promise<void>,
  *     status: ('idle'|'starting'|'running'|'done'|'failed'),
  *     stopReason: ?{kind: string, message: string, retryAfter: ?number},
- *     items: Array, loaded: boolean, loading: boolean, listError: ?ApiError,
- *     refetch: function(): void}}
+ *     items: Array, total: ?number, loaded: boolean, loading: boolean,
+ *     listError: ?ApiError, refetch: function(): void}}
  */
-export function useGeneration({ start, poll, list, labels }) {
+export function useGeneration({ start, poll, list, labels }, page = 1) {
   const job = useAsyncJob(
     (input, signal) => start(input, { signal }),
     (started, signal) => poll(started.generation_id, { signal }),
     { interval: POLL_INTERVAL_MS },
   );
   const { data, loading, error: listError, refetch } = useFetch(
-    (signal) => list({ signal }),
+    (signal) => list(pageQuery(page), { signal }),
+    [page],
   );
-  const items = data ?? [];
+  const items = data?.items ?? [];
+  const total = data?.total ?? null;
   const stopReason = job.status === 'failed' ? stopReasonOf(job, labels) : null;
 
   // A done job may carry a null result (stored but not read back); the list has it.
@@ -64,13 +68,13 @@ export function useGeneration({ start, poll, list, labels }) {
   }, [finished, refetch]);
 
   // 409 "already running": the server finishes it on its own, so wait for a
-  // new row, then clear the alert.
+  // new row (the total grows), then clear the alert.
   const busy = stopReason?.kind === 'busy';
-  const watch = usePolling((signal) => list({ signal }), {
+  const watch = usePolling((signal) => list({ limit: 1, offset: 0 }, { signal }), {
     enabled: busy,
     key: busy,
     interval: BUSY_INTERVAL_MS,
-    isDone: (rows) => rows.length !== items.length,
+    isDone: (rows) => rows.total !== total,
   });
   const { cancel } = job;
   const appeared = busy && !watch.polling && watch.data !== null;
@@ -85,6 +89,7 @@ export function useGeneration({ start, poll, list, labels }) {
     status: job.status,
     stopReason,
     items,
+    total,
     loaded: data !== null,
     loading,
     listError,
@@ -103,9 +108,10 @@ const CV_KIND = {
  *   const { generate, status, cvs } = useGenerateCv();
  *   generate(analysis.job_id);
  *
+ * @param {number=} page The 1-based page of generated CVs to show.
  * @return {Object} What `useGeneration` returns, with `items` also as `cvs`.
  */
-export function useGenerateCv() {
-  const gen = useGeneration(CV_KIND);
+export function useGenerateCv(page = 1) {
+  const gen = useGeneration(CV_KIND, page);
   return { ...gen, cvs: gen.items };
 }

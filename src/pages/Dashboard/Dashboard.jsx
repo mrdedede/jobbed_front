@@ -5,7 +5,7 @@ import {
   VisuallyHidden,
 } from '@mantine/core';
 import { Link } from 'react-router-dom';
-import { listAnalyses, listCandidates } from '../../api/endpoints/analyses.js';
+import { getAnalysisStats, listAnalyses, listCandidates } from '../../api/endpoints/analyses.js';
 import { listApplications } from '../../api/endpoints/applications.js';
 import { listCvs } from '../../api/endpoints/cvs.js';
 import { listGeneratedCvs } from '../../api/endpoints/generatedCvs.js';
@@ -76,22 +76,19 @@ function ApplicationFunnel({ applications }) {
 }
 
 export default function Dashboard() {
-  const due = useFetch((signal) => listCandidates(1, { signal }));
-  const week = useFetch((signal) => listAnalyses({ sinceDays: WEEK, limit: 200 }, { signal }));
+  // Counts come from each listing's `total`, so one row is enough.
+  const due = useFetch((signal) => listCandidates(1, { limit: 1 }, { signal }));
+  const week = useFetch((signal) => getAnalysisStats({ sinceDays: WEEK }, { signal }));
+  // Best fit first already: the first rows are the top matches.
+  const topQuery = useFetch((signal) => listAnalyses(
+    { sinceDays: WEEK, minGrade: TOP_GRADE, limit: TOP_COUNT }, { signal }));
   const cvs = useFetch((signal) => listCvs({ signal }));
-  const generated = useFetch((signal) => listGeneratedCvs({ signal }));
+  const generated = useFetch((signal) => listGeneratedCvs({ limit: 1 }, { signal }));
   const keywords = useFetch((signal) => listKeywords({ signal }));
   const applications = useFetch((signal) => listApplications({ signal }));
 
-  const analyses = useMemo(() => week.data ?? [], [week.data]);
-  const graded = analyses.filter((a) => a.adequation_grade != null);
-  const average = graded.length
-    ? Math.round(graded.reduce((sum, a) => sum + a.adequation_grade, 0) / graded.length)
-    : null;
-  const top = useMemo(() => analyses
-    .filter((a) => a.adequation_grade >= TOP_GRADE)
-    .sort((a, b) => b.adequation_grade - a.adequation_grade || b.analysed_at.localeCompare(a.analysed_at))
-    .slice(0, TOP_COUNT), [analyses]);
+  const average = week.data?.average;
+  const top = topQuery.data?.items ?? [];
 
   const hasActiveCv = cvs.data?.some((cv) => cv.is_active);
   const setupSteps = [
@@ -116,19 +113,19 @@ export default function Dashboard() {
       )}
 
       <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }}>
-        <StatTile label={t('dashboard_waiting')} query={due} value={due.data?.length}
+        <StatTile label={t('dashboard_waiting')} query={due} value={due.data?.total}
           hint={<Anchor component={Link} to="/ai-analysis" size="xs">{t('dashboard_run_analysis')}</Anchor>} />
-        <StatTile label={t('dashboard_graded_last_days', { days: WEEK })} query={week} value={week.data && analyses.length}
+        <StatTile label={t('dashboard_graded_last_days', { days: WEEK })} query={week} value={week.data?.count}
           hint={average != null && t('dashboard_average_grade', { average })} />
         <StatTile label={t('dashboard_active_cv')} query={cvs} value={cvs.data && (hasActiveCv ? t('dashboard_yes') : t('dashboard_no'))}
           hint={cvs.data && t('dashboard_saved_count', { count: cvs.data.length })} />
-        <StatTile label={t('dashboard_generated_cvs')} query={generated} value={generated.data?.length}
+        <StatTile label={t('dashboard_generated_cvs')} query={generated} value={generated.data?.total}
           hint={<Anchor component={Link} to="/cv-generation" size="xs">{t('dashboard_open_cv_generation')}</Anchor>} />
       </SimpleGrid>
 
       <Title order={4}>{t('dashboard_top_matches')}</Title>
-      {week.error ? <Text c="red" role="alert">{t('dashboard_failed_analyses')}</Text>
-        : week.loading && !week.data ? <Loader />
+      {topQuery.error ? <Text c="red" role="alert">{t('dashboard_failed_analyses')}</Text>
+        : topQuery.loading && !topQuery.data ? <Loader />
         : top.length === 0 ? <Text c="dimmed">{t('dashboard_no_top', { grade: TOP_GRADE, days: WEEK })}</Text>
         : (
           <Table>
@@ -161,10 +158,10 @@ export default function Dashboard() {
 
       {applications.data?.length > 0 && <ApplicationFunnel applications={applications.data} />}
 
-      {analyses.length > 0 && (
+      {week.data?.count > 0 && (
         <>
           <Title order={4}>{t('dashboard_last_days', { days: WEEK })}</Title>
-          <GradeCharts analyses={analyses} />
+          <GradeCharts stats={week.data} />
         </>
       )}
     </Stack>

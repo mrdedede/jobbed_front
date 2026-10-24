@@ -5,6 +5,7 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import JobDrawer from '../../components/JobDrawer.jsx';
+import Pager from '../../components/Pager.jsx';
 import QueryState from '../../components/QueryState.jsx';
 import StopAlert from '../../components/StopAlert.jsx';
 import CvProfileForm from '../../components/cv/CvProfileForm.jsx';
@@ -22,9 +23,12 @@ const NO_ANSWERS = Object.fromEntries(QUESTIONS.map(({ key }) => [key, '']));
 
 export default function CoverLetters() {
   const [profile, setProfile] = useState(null);
-  const gen = useGenerateLetter();
-  const cvsQuery = useFetch((signal) => listGeneratedCvs({ signal }));
-  const cvs = cvsQuery.data ?? [];
+  const [page, setPage] = useState(1);
+  const gen = useGenerateLetter(page);
+  // ponytail: the picker offers the newest 100 CVs (the API's page cap);
+  // a searchable server-side picker if users ever keep more.
+  const cvsQuery = useFetch((signal) => listGeneratedCvs({ limit: 100 }, { signal }));
+  const cvs = cvsQuery.data?.items ?? [];
   const active = gen.status === 'starting' || gen.status === 'running';
 
   // Coming from CV generation's "Cover letter": that CV is preselected.
@@ -44,8 +48,8 @@ export default function CoverLetters() {
     }
   }, [gen.status]);
 
-  // Open the new letter once the refetched list has it (newest first).
-  const fresh = gen.status === 'done' && pendingCount !== null && gen.items.length > pendingCount
+  // Open the new letter once the refetched list has it (newest first, page 1).
+  const fresh = gen.status === 'done' && pendingCount !== null && gen.total > pendingCount
     ? gen.items[0] : null;
   useEffect(() => {
     if (!fresh) return;
@@ -55,7 +59,8 @@ export default function CoverLetters() {
   }, [fresh]);
 
   const generate = () => {
-    setPendingCount(gen.items.length);
+    setPendingCount(gen.total ?? 0);
+    setPage(1);
     gen.generate({ cvId, answers });
   };
 
@@ -149,6 +154,7 @@ export default function CoverLetters() {
             ))}
           </Table.Tbody>
         </Table>
+        <Pager total={gen.total} page={page} onChange={setPage} />
       </QueryState>
       {gen.items.length > 0 && (
         <Text size="sm" c="dimmed">{t('cover_letter_ai_warning')}</Text>

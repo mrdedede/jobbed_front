@@ -1,20 +1,27 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import Dashboard from './Dashboard.jsx';
-import { json, mockFetch, renderWithProviders } from '../../test/utils.jsx';
+import { json, mockFetch, page, renderWithProviders } from '../../test/utils.jsx';
 
 const analysis = (id, grade, day = '2026-10-20') => ({
   job_id: id, adequation_grade: grade, company: `Co ${id}`, title: `Job ${id}`,
   url: `https://jobs/${id}`, analysed_at: `${day}T10:00:00Z`,
 });
 
+const stats = (count, average) => ({
+  count,
+  average,
+  histogram: ['0-19', '20-39', '40-59', '60-79', '80-100'].map((range) => ({ range, count: 0 })),
+  per_day: count ? [{ day: '2026-10-20', average }] : [],
+});
+
 const routes = (overrides = {}) => ({
-  'GET /v1/me/analyses/candidates?window_days=1': json(Array.from({ length: 12 }, (_, i) => ({ job_id: `c${i}` }))),
-  'GET /v1/me/analyses?limit=200&since_days=7': json([
-    analysis('a', 90), analysis('b', 40), analysis('c', 75), analysis('d', null),
-  ]),
+  'GET /v1/me/analyses/candidates?window_days=1&limit=1': page([{ job_id: 'c0' }], 12),
+  'GET /v1/me/analyses/stats?since_days=7': json(stats(4, 68)),
+  // The server filters (grade >= 70) and orders (best first).
+  'GET /v1/me/analyses?limit=5&min_grade=70&since_days=7': page([analysis('a', 90), analysis('c', 75)]),
   'GET /v1/me/cvs': json([{ id: 'cv', content_md: 'x', is_active: true }]),
-  'GET /v1/me/generated-cvs': json([{ cv_id: 'g' }]),
+  'GET /v1/me/generated-cvs': page([{ cv_id: 'g' }]),
   'GET /v1/me/keywords': json([{ id: 'k', term: 'go' }]),
   ...overrides,
 });
@@ -28,7 +35,6 @@ describe('Dashboard', () => {
 
     expect(await within(tile('Waiting to be graded')).findByText('12')).toBeInTheDocument();
     expect(await within(tile('Graded, last 7 days')).findByText('4')).toBeInTheDocument();
-    // (90 + 40 + 75) / 3, ungraded rows left out
     expect(within(tile('Graded, last 7 days')).getByText('Average grade 68')).toBeInTheDocument();
     expect(within(tile('Active CV')).getByText('Yes')).toBeInTheDocument();
     expect(within(tile('Generated CVs')).getByText('1')).toBeInTheDocument();
@@ -62,7 +68,8 @@ describe('Dashboard', () => {
     mockFetch(routes({
       'GET /v1/me/keywords': json([]),
       'GET /v1/me/cvs': json([]),
-      'GET /v1/me/analyses?limit=200&since_days=7': json([]),
+      'GET /v1/me/analyses/stats?since_days=7': json(stats(0, null)),
+      'GET /v1/me/analyses?limit=5&min_grade=70&since_days=7': page([]),
     }));
     renderWithProviders(<Dashboard />);
 

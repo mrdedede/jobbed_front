@@ -18,7 +18,7 @@ const isTransient = (error) => error?.status === 0 || error?.status >= 500;
  *
  * Example:
  *   const { data } = usePolling(
- *       (signal) => listCandidates(1, { signal }),
+ *       (signal) => listCandidates(1, {}, { signal }),
  *       { interval: 5000, isDone: (result) => result.length === 0 });
  *
  * @param {function(AbortSignal): Promise<*>} poll Fetches the current state.
