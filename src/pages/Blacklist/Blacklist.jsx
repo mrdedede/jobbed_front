@@ -9,5 +9,5 @@ const api = {
 };
 
 export default function Blacklist() {
-  return <TermList title={t('blacklist_title')} api={api} />;
+  return <TermList title={t('blacklist_title')} help={t('help_blacklist')} api={api} />;
 }

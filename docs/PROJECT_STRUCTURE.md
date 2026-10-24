@@ -44,14 +44,16 @@ page ─► hook (useFetch / useMutation / useAsyncJob / ...) ─► api/endpoin
 | `hooks/useGenerateCv.js` | CV generation job plus the generated-CV list; recovers from "already running". |
 | `hooks/useCvs.js`, `useAnalyses.js` | CV list with optimistic edits; analyses with debounced filters. |
 | `hooks/useApplications.js` | Application board with optimistic moves; `funnel()` for the dashboard stats; stage and reason labels. |
-| `components/layout/` | `AppShell` (header, sidebar, error boundary, `Suspense`, page title, shared `getMe` via outlet context), `NavLinks`. |
+| `components/layout/` | `AppShell` (header, sidebar, error boundary, `Suspense`, page title, shared `getMe` via outlet context, skip-to-content link, focus moved to the page on navigation), `NavLinks`. |
+| `components/InfoTip.jsx` | The ⓘ help button next to titles and controls: a popover (click, tap, Enter; Escape closes). |
 | `components/QueryState.jsx` | The loading / error + retry / empty states every list uses. |
 | `components/StopAlert.jsx`, `ErrorBoundary.jsx` | Why a run stopped; a page crash shown in place instead of a blank app. |
 | `components/TermList/` | Keywords and blacklist (same component, different endpoints). |
 | `components/CvEditor/`, `components/cv/` | Markdown CV editor modal; the browser-only profile form (name, contact, languages, photo). |
 | `components/analysis/` | `RunPanel`, `AnalysisTable` (keyboard-accessible rows, drawer), `GradeCharts`. |
 | `cv/` | Generated CV JSON to lines (`sections.js`, port of the back end's `docx_gen.py`), localisation, Word (`toDocx.js`, lazy) and PDF via the print dialog (`toPdf.js`), profile storage. |
-| `pages/` | One folder per page; page-specific tests next to them. |
+| `onboarding.js` | Whether the guided setup was finished or skipped (localStorage). |
+| `pages/` | One folder per page; page-specific tests next to them. `Onboarding/` is the guided setup at `/welcome`: the Dashboard sends an account with no CV and no keywords there until it is finished or skipped. |
 | `test/` | `setup.js` (jsdom stubs Mantine needs), `utils.jsx` (`mockFetch`, `renderWithProviders`, `fakeToken`). |
 | `theme/theme.js` | Mantine theme (violet primary). |
 

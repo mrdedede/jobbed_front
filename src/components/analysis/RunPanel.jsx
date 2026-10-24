@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button, Group, Paper, Select, Slider, Stack, Text, Title } from '@mantine/core';
+import InfoTip from '../InfoTip.jsx';
 import StopAlert from '../StopAlert.jsx';
 import { t } from '../../l10n.js';
 
@@ -26,15 +27,22 @@ export default function RunPanel({ run, windowDays, onWindowDaysChange, due, pic
       <Stack>
         <Title order={4}>{t('run_title')}</Title>
         <div>
-          <Text size="sm" id="window-days-label">
-            {t(windowDays > 1 ? 'run_window_other' : 'run_window_one', { days: windowDays })}
-            {due != null && t('run_window_due', { due })}</Text>
+          <Group gap={4} wrap="nowrap">
+            <Text size="sm" id="window-days-label">
+              {t(windowDays > 1 ? 'run_window_other' : 'run_window_one', { days: windowDays })}
+              {due != null && t('run_window_due', { due })}</Text>
+            <InfoTip label={t('run_title')}>{t('help_window')}</InfoTip>
+          </Group>
           <Slider min={1} max={30} value={windowDays} onChange={onWindowDaysChange} disabled={active}
             thumbProps={{ 'aria-labelledby': 'window-days-label' }} />
         </div>
         <Group align="flex-end">
-          <Select label={t('run_model')} data={MODELS} value={model} w={140} allowDeselect={false}
-            disabled={active} onChange={setModel} />
+          {/* Beside the select, not in its label: a button inside a <label> is invalid. */}
+          <Group gap={4} align="flex-end" wrap="nowrap">
+            <Select label={t('run_model')} data={MODELS} value={model} w={140} allowDeselect={false}
+              disabled={active} onChange={setModel} />
+            <InfoTip label={t('run_model')}>{t('help_model')}</InfoTip>
+          </Group>
           <Button loading={active} disabled={picked.length === 0 || tooMany}
             onClick={() => run.start({ jobIds: picked, model })}>
             {t('run_start_picked', { count: picked.length })}

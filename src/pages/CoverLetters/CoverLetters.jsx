@@ -4,6 +4,7 @@ import {
   Button, CopyButton, Group, Loader, Paper, Select, Stack, Table, Text, Textarea, Title,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import InfoTip from '../../components/InfoTip.jsx';
 import JobDrawer from '../../components/JobDrawer.jsx';
 import Pager from '../../components/Pager.jsx';
 import QueryState from '../../components/QueryState.jsx';
@@ -86,7 +87,10 @@ export default function CoverLetters() {
 
   return (
     <Stack maw={1000}>
-      <Title order={2}>{t('cover_letter_title')}</Title>
+      <Group gap={4}>
+        <Title order={2}>{t('cover_letter_title')}</Title>
+        <InfoTip label={t('cover_letter_title')}>{t('help_cover_letters')}</InfoTip>
+      </Group>
       <CvProfileForm onChange={(p) => setProfile(p)} />
 
       <Title order={4}>{t('cover_letter_write_title')}</Title>

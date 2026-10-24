@@ -17,4 +17,5 @@ export const navRoutes = [
 /** Routed pages that are not in the sidebar. */
 export const otherRoutes = [
   { path: '/account', label: t('nav_account'), Page: lazy(() => import('./pages/Account/Account.jsx')) },
+  { path: '/welcome', label: t('nav_welcome'), Page: lazy(() => import('./pages/Onboarding/Onboarding.jsx')) },
 ];

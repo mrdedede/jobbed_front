@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { AppShell as MantineAppShell, Burger, Group, Loader, Menu, Button, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Link, Outlet, useLocation } from 'react-router-dom';
@@ -18,6 +18,16 @@ export default function AppShell() {
   useEffect(() => {
     document.title = pageLabel ? t('app_page_title', { page: pageLabel }) : t('app_name');
   }, [pageLabel]);
+
+  // After a navigation, move focus to the new page so screen readers start
+  // there; not on the first render (or StrictMode's re-run of it), where it
+  // would steal the browser's focus.
+  const mainRef = useRef(null);
+  const shownPath = useRef(pathname);
+  useEffect(() => {
+    if (shownPath.current !== pathname) mainRef.current?.focus({ preventScroll: true });
+    shownPath.current = pathname;
+  }, [pathname]);
   // Shared with pages through the outlet context (see Account), fetched once.
   const meQuery = useFetch((signal) => getMe({ signal }));
   const me = meQuery.data;
@@ -28,6 +38,7 @@ export default function AppShell() {
       navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: !opened } }}
       padding="md"
     >
+      <a href="#main" className="skip-link">{t('shell_skip_to_content')}</a>
       <MantineAppShell.Header>
         <Group h="100%" px="md" justify="space-between">
           <Group>
@@ -52,7 +63,7 @@ export default function AppShell() {
         <NavLinks onNavigate={close} />
       </MantineAppShell.Navbar>
 
-      <MantineAppShell.Main>
+      <MantineAppShell.Main id="main" ref={mainRef} tabIndex={-1} style={{ outline: 'none' }}>
         <ErrorBoundary key={pathname}>
           <Suspense fallback={<Loader aria-label={t('shell_loading_page')} />}>
             <Outlet context={{ meQuery }} />

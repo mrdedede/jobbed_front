@@ -4,16 +4,18 @@ import {
   Alert, Anchor, Badge, Button, Group, List, Loader, Paper, SimpleGrid, Stack, Table, Text, Title,
   VisuallyHidden,
 } from '@mantine/core';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { getAnalysisStats, listAnalyses, listCandidates } from '../../api/endpoints/analyses.js';
 import { listApplications } from '../../api/endpoints/applications.js';
 import { listCvs } from '../../api/endpoints/cvs.js';
 import { listGeneratedCvs } from '../../api/endpoints/generatedCvs.js';
 import { listKeywords } from '../../api/endpoints/keywords.js';
+import InfoTip from '../../components/InfoTip.jsx';
 import GradeCharts from '../../components/analysis/GradeCharts.jsx';
 import { STAGES, funnel, stageLabel } from '../../hooks/useApplications.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { t } from '../../l10n.js';
+import { isOnboardingDone } from '../../onboarding.js';
 
 const WEEK = 7;
 const TOP_GRADE = 70;
@@ -24,16 +26,19 @@ const TOP_COUNT = 5;
  * endpoint does not hide the others.
  *
  * @param {{label: string, query: {loading: boolean, error: ?ApiError},
- *     value: ?(string|number), hint?: import('react').ReactNode}} props
+ *     value: ?(string|number), hint?: import('react').ReactNode, help?: string}} props
  */
-function StatTile({ label, query, value, hint }) {
+function StatTile({ label, query, value, hint, help }) {
   let body;
   if (query.error) body = <Text c="red" size="sm" role="alert">{t('dashboard_tile_failed')}</Text>;
   else if (query.loading && value == null) body = <Loader size="sm" aria-label={t('dashboard_tile_loading', { label })} />;
   else body = <Text fz={32} fw={700} lh={1.1}>{value}</Text>;
   return (
     <Paper withBorder p="md">
-      <Text size="sm" c="dimmed">{label}</Text>
+      <Group gap={4} wrap="nowrap">
+        <Text size="sm" c="dimmed">{label}</Text>
+        {help && <InfoTip label={label}>{help}</InfoTip>}
+      </Group>
       {body}
       {hint && <Text size="xs" c="dimmed" mt={4}>{hint}</Text>}
     </Paper>
@@ -96,6 +101,11 @@ export default function Dashboard() {
     cvs.data && !hasActiveCv && { to: '/cvs', text: t('dashboard_setup_cv') },
   ].filter(Boolean);
 
+  // First visit: nothing set up yet, and the guided setup was never finished or skipped.
+  if (cvs.data?.length === 0 && keywords.data?.length === 0 && !isOnboardingDone()) {
+    return <Navigate to="/welcome" replace />;
+  }
+
   return (
     <Stack maw={1000}>
       <Title order={2}>{t('dashboard_title')}</Title>
@@ -109,11 +119,14 @@ export default function Dashboard() {
               </List.Item>
             ))}
           </List>
+          <Anchor component={Link} to="/welcome" size="sm" mt="xs" display="inline-block">
+            {t('dashboard_guided_setup')}
+          </Anchor>
         </Alert>
       )}
 
       <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }}>
-        <StatTile label={t('dashboard_waiting')} query={due} value={due.data?.total}
+        <StatTile label={t('dashboard_waiting')} query={due} value={due.data?.total} help={t('help_waiting')}
           hint={<Anchor component={Link} to="/ai-analysis" size="xs">{t('dashboard_run_analysis')}</Anchor>} />
         <StatTile label={t('dashboard_graded_last_days', { days: WEEK })} query={week} value={week.data?.count}
           hint={average != null && t('dashboard_average_grade', { average })} />

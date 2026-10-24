@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Group, Select, Slider, Stack, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import InfoTip from '../../components/InfoTip.jsx';
 import Pager from '../../components/Pager.jsx';
 import QueryState from '../../components/QueryState.jsx';
 import AnalysisTable from '../../components/analysis/AnalysisTable.jsx';
@@ -90,7 +91,10 @@ export default function AiAnalysis() {
 
       <Group align="flex-end">
         <div style={{ flex: 1, maxWidth: 320 }}>
-          <Text size="sm" id="min-grade-label">{t('ai_analysis_min_grade', { grade: minGrade })}</Text>
+          <Group gap={4} wrap="nowrap">
+            <Text size="sm" id="min-grade-label">{t('ai_analysis_min_grade', { grade: minGrade })}</Text>
+            <InfoTip label={t('dashboard_col_grade')}>{t('help_min_grade')}</InfoTip>
+          </Group>
           <Slider min={0} max={100} value={minGrade} onChange={changeMinGrade}
             thumbProps={{ 'aria-labelledby': 'min-grade-label' }} />
         </div>
