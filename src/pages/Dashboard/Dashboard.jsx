@@ -1,14 +1,17 @@
 import { useMemo } from 'react';
+import { BarChart } from '@mantine/charts';
 import {
   Alert, Anchor, Badge, Button, Group, List, Loader, Paper, SimpleGrid, Stack, Table, Text, Title,
   VisuallyHidden,
 } from '@mantine/core';
 import { Link } from 'react-router-dom';
 import { listAnalyses, listCandidates } from '../../api/endpoints/analyses.js';
+import { listApplications } from '../../api/endpoints/applications.js';
 import { listCvs } from '../../api/endpoints/cvs.js';
 import { listGeneratedCvs } from '../../api/endpoints/generatedCvs.js';
 import { listKeywords } from '../../api/endpoints/keywords.js';
 import GradeCharts from '../../components/analysis/GradeCharts.jsx';
+import { STAGES, funnel, stageLabel } from '../../hooks/useApplications.js';
 import { useFetch } from '../../hooks/useFetch.js';
 import { t } from '../../l10n.js';
 
@@ -37,12 +40,48 @@ function StatTile({ label, query, value, hint }) {
   );
 }
 
+/**
+ * How far applications got and where the rejected ones stopped.
+ *
+ * @param {{applications: Application[]}} props
+ */
+function ApplicationFunnel({ applications }) {
+  const { reached, rejectedFrom } = useMemo(() => funnel(applications), [applications]);
+  const data = STAGES.map((stage) => ({
+    stage: stageLabel(stage),
+    reached: reached[stage],
+    rejected: rejectedFrom[stage] ?? 0,
+  }));
+  return (
+    <>
+      <Group justify="space-between">
+        <Title order={4}>{t('dashboard_applications')}</Title>
+        <Anchor component={Link} to="/applications" size="sm">{t('dashboard_open_applications')}</Anchor>
+      </Group>
+      <BarChart h={220} data={data} dataKey="stage" series={[
+        { name: 'reached', label: t('dashboard_applications_reached'), color: 'violet.6' },
+        { name: 'rejected', label: t('dashboard_applications_rejected'), color: 'red.6' },
+      ]} withLegend />
+      {reached.applied > 0 && (
+        <Text size="sm" c="dimmed">
+          {t('dashboard_applications_rate', {
+            interviews: reached.interviews,
+            applied: reached.applied,
+            rate: Math.round((100 * reached.interviews) / reached.applied),
+          })}
+        </Text>
+      )}
+    </>
+  );
+}
+
 export default function Dashboard() {
   const due = useFetch((signal) => listCandidates(1, { signal }));
   const week = useFetch((signal) => listAnalyses({ sinceDays: WEEK, limit: 200 }, { signal }));
   const cvs = useFetch((signal) => listCvs({ signal }));
   const generated = useFetch((signal) => listGeneratedCvs({ signal }));
   const keywords = useFetch((signal) => listKeywords({ signal }));
+  const applications = useFetch((signal) => listApplications({ signal }));
 
   const analyses = useMemo(() => week.data ?? [], [week.data]);
   const graded = analyses.filter((a) => a.adequation_grade != null);
@@ -119,6 +158,8 @@ export default function Dashboard() {
             </Table.Tbody>
           </Table>
         )}
+
+      {applications.data?.length > 0 && <ApplicationFunnel applications={applications.data} />}
 
       {analyses.length > 0 && (
         <>

@@ -31,7 +31,7 @@ page ─► hook (useFetch / useMutation / useAsyncJob / ...) ─► api/endpoin
 | `App.jsx` | Router: `/login` is public; everything else sits under `RequireAuth` and `AppShell`. |
 | `routes.jsx` | The pages, lazy-loaded (one chunk each). Single source for the routes, the sidebar and page titles. |
 | `api/client.js` | `fetch` wrapper: base URL, JSON, Bearer token, 15 s default timeout, `ApiError`, one 401 handler call per burst. |
-| `api/endpoints/` | `auth`, `me`, `keywords`, `blacklist`, `cvs`, `analyses`, `generatedCvs`. |
+| `api/endpoints/` | `auth`, `me`, `keywords`, `blacklist`, `cvs`, `analyses`, `generatedCvs`, `applications`. |
 | `api/stopReason.js` | `ApiError` to `{kind, message, retryAfter}` for runs and generations. |
 | `auth/AuthContext.jsx` | Token store (localStorage, memory fallback) as an external store; auto-logout at `exp`, warning 5 min before, logout synced across tabs. |
 | `auth/RequireAuth.jsx` | Layout route that redirects to `/login`, remembering the full URL. |
@@ -43,6 +43,7 @@ page ─► hook (useFetch / useMutation / useAsyncJob / ...) ─► api/endpoin
 | `hooks/useAnalyzeRun.js` | The analyze loop: batches while `remaining > 0`, soft stop, 50-batch cap. |
 | `hooks/useGenerateCv.js` | CV generation job plus the generated-CV list; recovers from "already running". |
 | `hooks/useCvs.js`, `useAnalyses.js` | CV list with optimistic edits; analyses with debounced filters. |
+| `hooks/useApplications.js` | Application board with optimistic moves; `funnel()` for the dashboard stats; stage and reason labels. |
 | `components/layout/` | `AppShell` (header, sidebar, error boundary, `Suspense`, page title, shared `getMe` via outlet context), `NavLinks`. |
 | `components/QueryState.jsx` | The loading / error + retry / empty states every list uses. |
 | `components/StopAlert.jsx`, `ErrorBoundary.jsx` | Why a run stopped; a page crash shown in place instead of a blank app. |

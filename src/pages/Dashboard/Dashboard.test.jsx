@@ -44,6 +44,20 @@ describe('Dashboard', () => {
     expect(screen.getAllByRole('link', { name: 'Generate CV' })).toHaveLength(2);
   });
 
+  it('shows the application funnel when there are applications', async () => {
+    mockFetch(routes({
+      'GET /v1/me/applications': json([
+        { job_id: 'x', status: 'interviews' },
+        { job_id: 'y', status: 'rejected', rejected_from: 'applied' },
+        { job_id: 'z', status: 'cv_generated' },
+      ]),
+    }));
+    renderWithProviders(<Dashboard />);
+
+    expect(await screen.findByText('1 of 2 applications got an interview (50%).')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open the board' })).toHaveAttribute('href', '/applications');
+  });
+
   it('shows a setup checklist for a new account', async () => {
     mockFetch(routes({
       'GET /v1/me/keywords': json([]),
