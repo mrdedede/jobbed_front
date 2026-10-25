@@ -29,11 +29,17 @@ export function useCandidates(windowDays) {
     loadedCount.current = state.items.length;
   }, [state.items.length]);
 
-  /** Fetch rows from `offset`: a reset (offset 0) replaces the list, else appends. */
-  const fetchBatch = useCallback(async (offset, limit) => {
+  /**
+   * Fetch rows from `offset`: a reset (offset 0) replaces the list, else
+   * appends. `clear` empties the list first, for a new window: its rows and
+   * total must not drive a load-more against the new one.
+   */
+  const fetchBatch = useCallback(async (offset, limit, clear = false) => {
     controller.current?.abort();
     const current = controller.current = new AbortController();
-    setState((previous) => ({ ...previous, loading: true, error: null }));
+    setState((previous) => (clear
+      ? { items: [], total: null, loading: true, error: null }
+      : { ...previous, loading: true, error: null }));
     try {
       const batch = await listCandidates(debouncedWindowDays, { limit, offset }, { signal: current.signal });
       if (current.signal.aborted) return;
@@ -62,7 +68,7 @@ export function useCandidates(windowDays) {
     lastWindow.current = debouncedWindowDays;
     const limit = sameList ? Math.min(Math.max(loadedCount.current, PAGE_SIZE), MAX_LIMIT) : PAGE_SIZE;
     // oxlint-disable-next-line react/set-state-in-effect -- marks the new request as loading
-    fetchBatch(0, limit);
+    fetchBatch(0, limit, !sameList);
     return () => controller.current?.abort();
   }, [debouncedWindowDays, fetchBatch, reloads]);
 
