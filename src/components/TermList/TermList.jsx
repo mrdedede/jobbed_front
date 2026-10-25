@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActionIcon, Badge, Button, Group, Paper, Stack, Text, TextInput, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useFetch } from '../../hooks/useFetch.js';
+import InfoTip from '../InfoTip.jsx';
 import QueryState from '../QueryState.jsx';
 import { t } from '../../l10n.js';
 
@@ -27,13 +28,13 @@ function toastUnexpected(error) {
  * Editable list of terms with optimistic add / edit / remove. Used for both
  * keywords and the blacklist.
  *
- * @param {{title: string, max?: number, api: {
+ * @param {{title: string, help?: string, max?: number, api: {
  *   list: function(Object=): Promise<Array<{id: string, term: string}>>,
  *   create: function(string): Promise<{id: string, term: string}>,
  *   update: function(string, string): Promise<{id: string, term: string}>,
  *   remove: function(string): Promise<null>}}} props
  */
-export default function TermList({ title, api, max = 200 }) {
+export default function TermList({ title, help, api, max = 200 }) {
   const { data, loading, error, refetch } = useFetch((signal) => api.list({ signal }));
   // `local` holds optimistic edits; null means "show what the server sent".
   // A new server response (a refetch) replaces them.
@@ -122,7 +123,10 @@ export default function TermList({ title, api, max = 200 }) {
   return (
     <Stack maw={520}>
       <Group justify="space-between">
-        <Title order={2}>{title}</Title>
+        <Group gap={4}>
+          <Title order={2}>{title}</Title>
+          {help && <InfoTip label={title}>{help}</InfoTip>}
+        </Group>
         <Badge variant="light" color={atLimit ? 'red' : 'violet'}>{terms.length} / {max}</Badge>
       </Group>
 
@@ -134,6 +138,7 @@ export default function TermList({ title, api, max = 200 }) {
           <Button type="submit" disabled={atLimit}>{t('terms_add')}</Button>
         </Group>
       </form>
+      {atLimit && <Text size="sm" c="red">{t('terms_limit_reached', { max })}</Text>}
 
       <QueryState loading={loading} error={error} hasData={data !== null} onRetry={refetch}
         label={title.toLowerCase()} empty={terms.length === 0 && t('terms_empty')}>

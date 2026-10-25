@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Anchor, Badge, Button, Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import InfoTip from '../../components/InfoTip.jsx';
 import JobDrawer from '../../components/JobDrawer.jsx';
 import { pageQuery } from '../../api/paging.js';
 import Pager from '../../components/Pager.jsx';
@@ -113,7 +114,10 @@ export default function CvGeneration() {
 
   return (
     <Stack maw={1000}>
-      <Title order={2}>{t('cv_generation_title')}</Title>
+      <Group gap={4}>
+        <Title order={2}>{t('cv_generation_title')}</Title>
+        <InfoTip label={t('cv_generation_title')}>{t('help_cv_generation')}</InfoTip>
+      </Group>
       <CvProfileForm onChange={(profile, photo) => setDetails({ profile, photo })} />
 
       {gen.stopReason && <StopAlert reason={gen.stopReason} />}

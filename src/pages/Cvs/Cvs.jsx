@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { Alert, Badge, Button, Group, Modal, Paper, Stack, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import CvEditor from '../../components/CvEditor/CvEditor.jsx';
+import InfoTip from '../../components/InfoTip.jsx';
 import QueryState from '../../components/QueryState.jsx';
 import SuggestTermsModal from '../../components/cv/SuggestTermsModal.jsx';
 import { MAX_CVS, useCvs } from '../../hooks/useCvs.js';
@@ -39,13 +40,17 @@ export default function Cvs() {
   return (
     <Stack maw={720}>
       <Group justify="space-between">
-        <Title order={2}>{t('cvs_title')}</Title>
+        <Group gap={4}>
+          <Title order={2}>{t('cvs_title')}</Title>
+          <InfoTip label={t('cvs_title')}>{t('help_cvs')}</InfoTip>
+        </Group>
         <Group>
           <Badge variant="light" color={atLimit ? 'red' : 'violet'}>{cvs.length} / {MAX_CVS}</Badge>
           <Button disabled={atLimit} onClick={() => setEditor('new')}>{t('cvs_new')}</Button>
         </Group>
       </Group>
 
+      {atLimit && <Text size="sm" c="red">{t('cvs_limit_reached', { max: MAX_CVS })}</Text>}
       {cvs.length > 0 && !cvs.some((cv) => cv.is_active) && (
         <Alert color="yellow">{t('cvs_no_active')}</Alert>
       )}

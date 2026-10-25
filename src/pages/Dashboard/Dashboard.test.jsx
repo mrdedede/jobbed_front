@@ -1,6 +1,8 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import Dashboard from './Dashboard.jsx';
+import { Route, Routes } from 'react-router-dom';
+import { markOnboardingDone } from '../../onboarding.js';
 import { json, mockFetch, page, renderWithProviders } from '../../test/utils.jsx';
 
 const analysis = (id, grade, day = '2026-10-20') => ({
@@ -64,7 +66,25 @@ describe('Dashboard', () => {
     expect(screen.getByRole('link', { name: 'Open the board' })).toHaveAttribute('href', '/applications');
   });
 
+  const newAccount = {
+    'GET /v1/me/keywords': json([]),
+    'GET /v1/me/cvs': json([]),
+  };
+
+  it('sends a new account to the guided setup', async () => {
+    mockFetch(routes(newAccount));
+    renderWithProviders(
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/welcome" element={<p>Welcome page</p>} />
+      </Routes>,
+    );
+
+    expect(await screen.findByText('Welcome page')).toBeInTheDocument();
+  });
+
   it('shows a setup checklist for a new account', async () => {
+    markOnboardingDone();
     mockFetch(routes({
       'GET /v1/me/keywords': json([]),
       'GET /v1/me/cvs': json([]),
@@ -77,6 +97,7 @@ describe('Dashboard', () => {
     expect(screen.getByRole('link', { name: /Add keywords/ })).toHaveAttribute('href', '/keywords');
     expect(screen.getByRole('link', { name: /Add or activate a CV/ })).toHaveAttribute('href', '/cvs');
     expect(screen.getByText(/No posting graded 70\+/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open the guided setup' })).toHaveAttribute('href', '/welcome');
   });
 
   it('keeps the other tiles when one endpoint fails', async () => {
