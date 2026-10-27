@@ -19,9 +19,13 @@ const BUSY_INTERVAL_MS = 5000;
  * finished job reported. A 404 while polling means the API restarted, or the
  * job is older than an hour.
  */
-function stopReasonOf(job, labels) {
+export function stopReasonOf(job, labels) {
   if (job.errorWhilePolling && job.error.status === 404) {
-    return { kind: 'interrupted', message: t('stop_generation_interrupted'), retryAfter: null };
+    return {
+      kind: 'interrupted',
+      message: t('stop_generation_interrupted', { thing: labels.thing }),
+      retryAfter: null,
+    };
   }
   if (job.error) return toStopReason(job.error, labels);
   if (job.result?.status === 'failed') {

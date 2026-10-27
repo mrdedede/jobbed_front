@@ -5,17 +5,11 @@
 import { api } from '../client.js';
 
 /**
- * Grading calls to the LLM are slow; the default client timeout is too short.
- * Kept below the ingress proxy-read-timeout (k8s/ingress.yaml, 300 s) so the
- * client gives up first, with its own error, rather than getting a 504 page.
- */
-const ANALYZE_TIMEOUT_MS = 170_000;
-
-/**
  * Listing candidates filters every ungraded posting server-side. Cached after
  * the first call, but that first call after an ingest can take minutes on a
- * small host (~100 s on the phone sandbox with an 84k-posting backlog). Same
- * ceiling as analyze, for the same reason.
+ * small host (~100 s on the phone sandbox with an 84k-posting backlog). Kept
+ * below the ingress proxy-read-timeout (k8s/ingress.yaml, 300 s) so the
+ * client gives up first, with its own error, rather than getting a 504 page.
  */
 const CANDIDATES_TIMEOUT_MS = 170_000;
 
@@ -66,23 +60,32 @@ const CANDIDATES_TIMEOUT_MS = 170_000;
  */
 
 /**
- * Grades the picked postings, in order, up to the daily cap.
+ * Starts grading the picked postings, in order, up to the daily cap.
  *
  * @param {{jobIds: string[], model?: string}} params `jobIds` 1-50 ids from
  *     `listCandidates`, `model` one of the server's allowed models
  *     (default 'haiku').
  * @param {Object=} options Request options, see `request` in client.js.
- * @return {Promise<AnalyzeResult>}
+ * @return {Promise<{analysis_id: string}>}
  * @throws {ApiError} 409 if there is no active CV or a run is in flight,
- *     429 if the daily cap is reached (see `retryAfter`), 502 if every
- *     grading call failed.
+ *     429 if the daily cap is reached (see `retryAfter`).
  */
-export function analyze({ jobIds, model }, options) {
-  return api.post(
-    '/v1/me/analyze',
-    { job_ids: jobIds, model },
-    { timeout: ANALYZE_TIMEOUT_MS, ...options },
-  );
+export function startAnalysis({ jobIds, model }, options) {
+  return api.post('/v1/me/analyze', { job_ids: jobIds, model }, options);
+}
+
+/**
+ * Current state of a run started by `startAnalysis`. A failed run's `error`
+ * is `{status: 502, ...}` when every grading call failed.
+ *
+ * @param {string} analysisId
+ * @param {Object=} options Request options, see `request` in client.js.
+ * @return {Promise<{status: string, done: number, total: number,
+ *     result: ?AnalyzeResult, error: ?Object}>}
+ * @throws {ApiError} 404 if unknown, or lost to an API restart.
+ */
+export function getAnalysis(analysisId, options) {
+  return api.get(`/v1/me/analyze/${analysisId}`, options);
 }
 
 /** `?a=1&b=2` from the defined values, '' when there are none. */

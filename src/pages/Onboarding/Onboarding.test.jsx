@@ -8,16 +8,24 @@ import { json, mockFetch, page, renderWithProviders } from '../../test/utils.jsx
 
 const candidate = (id) => ({ job_id: id, company: `Co ${id}`, title: `Job ${id}`, url: `https://jobs/${id}` });
 
+let picked = [];
 const routes = {
   'GET /v1/me/cvs': json([{ id: 'cv', content_md: '# Me', is_active: true }]),
   'GET /v1/me/keywords': json([{ id: 'k', term: 'go' }]),
   'GET /v1/me/blacklist': json([]),
   'GET /v1/me/analyses/candidates?window_days=7&limit=5': page([candidate('a'), candidate('b')], 9),
-  'POST /v1/me/analyze': ({ body }) => json({
-    analysed: body.job_ids.length, failed: 0, skipped: 0,
-    results: body.job_ids.map((id) => ({
-      ...candidate(id), adequation_grade: 80, analysed_at: '2026-10-24T10:00:00Z',
-    })),
+  'POST /v1/me/analyze': ({ body }) => {
+    picked = body.job_ids;
+    return json({ analysis_id: 'r1' }, 202);
+  },
+  'GET /v1/me/analyze/r1': () => json({
+    status: 'done', done: picked.length, total: picked.length, error: null,
+    result: {
+      analysed: picked.length, failed: 0, skipped: 0,
+      results: picked.map((id) => ({
+        ...candidate(id), adequation_grade: 80, analysed_at: '2026-10-24T10:00:00Z',
+      })),
+    },
   }),
 };
 

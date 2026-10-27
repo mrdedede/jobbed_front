@@ -22,8 +22,10 @@ import { usePolling } from './usePolling.js';
  *     poll result to a status. Defaults to reading `result.status`, where any
  *     value other than 'done' or 'failed' means still running.
  * @return {{start: function(*): Promise<void>, cancel: function(): void,
- *     status: string, result: *, error: ?ApiError, errorWhilePolling: boolean}}
- *     `result` is the final poll result. `error` is why the job could not
+ *     status: string, result: *, latest: *, error: ?ApiError,
+ *     errorWhilePolling: boolean}}
+ *     `result` is the final poll result, `latest` the newest one (e.g. for
+ *     progress while running). `error` is why the job could not
  *     start or be polled; `errorWhilePolling` says which.
  *     `cancel` only stops tracking; it does not stop the work server-side.
  */
@@ -87,6 +89,7 @@ export function useAsyncJob(
     cancel,
     status,
     result: status === 'done' || status === 'failed' ? polling.data : null,
+    latest: job !== null ? polling.data : null,
     error,
     // Lets callers tell "could not start" from "lost track while polling".
     errorWhilePolling: error !== null && startError === null,

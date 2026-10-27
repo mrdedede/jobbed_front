@@ -50,6 +50,11 @@ export default function RunPanel({ run, windowDays, onWindowDaysChange, due, pic
         </Group>
         {tooMany && <Text size="sm" c="red">{t('run_too_many', { max: MAX_PICKED })}</Text>}
 
+        {active && progress.total > 0 && (
+          <Text size="sm" c="dimmed" aria-live="polite">
+            {t('run_grading', { done: progress.done, total: progress.total })}
+          </Text>
+        )}
         {status === 'done' && (
           <Text size="sm" c="dimmed">
             {t('run_progress', { graded: progress.analysed, failed: progress.failed })}

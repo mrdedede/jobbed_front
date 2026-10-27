@@ -196,10 +196,14 @@ describe('AiAnalysis', () => {
     const fetchMock = mockFetch({
       'GET /v1/me/analyses/candidates': () => page(offered),
       'GET /v1/me/analyses': () => page(stored),
-      'POST /v1/me/analyze': () => {
+      'POST /v1/me/analyze': json({ analysis_id: 'r1' }, 202),
+      'GET /v1/me/analyze/r1': () => {
         stored = [graded];
         offered = offered.slice(1);
-        return json({ analysed: 1, failed: 0, skipped: 1, results: [graded] });
+        return json({
+          status: 'done', done: 1, total: 1, error: null,
+          result: { analysed: 1, failed: 0, skipped: 1, results: [graded] },
+        });
       },
     });
     renderWithProviders(<AiAnalysis />);
