@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Group, Select, Slider, Stack, Text, Title } from '@mantine/core';
+import { Group, Slider, Stack, Text, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import InfoTip from '../../components/InfoTip.jsx';
 import Pager from '../../components/Pager.jsx';
@@ -8,6 +8,7 @@ import AnalysisTable from '../../components/analysis/AnalysisTable.jsx';
 import CandidateTable from '../../components/analysis/CandidateTable.jsx';
 import GradeCharts from '../../components/analysis/GradeCharts.jsx';
 import RunPanel from '../../components/analysis/RunPanel.jsx';
+import SinceSelect from '../../components/analysis/SinceSelect.jsx';
 import { useAnalyses } from '../../hooks/useAnalyses.js';
 import { useAnalyzeRun } from '../../hooks/useAnalyzeRun.js';
 import { useCandidates } from '../../hooks/useCandidates.js';
@@ -15,23 +16,16 @@ import { t } from '../../l10n.js';
 
 const BUSY_REFETCH_MS = 30_000;
 
-const SINCE_OPTIONS = [
-  { value: '', label: t('ai_analysis_since_all') },
-  { value: '1', label: t('ai_analysis_since_day') },
-  { value: '7', label: t('ai_analysis_since_7') },
-  { value: '30', label: t('ai_analysis_since_30') },
-];
-
 export default function AiAnalysis() {
   const [windowDays, setWindowDays] = useState(1);
   const [minGrade, setMinGrade] = useState(0);
-  const [sinceDays, setSinceDays] = useState('');
+  const [sinceDays, setSinceDays] = useState();
   const [picked, setPicked] = useState(() => new Set());
   const [analysisPage, setAnalysisPage] = useState(1);
   const run = useAnalyzeRun();
   const { analyses, total, stats, loaded, loading, error, refetch } = useAnalyses({
     minGrade,
-    sinceDays: sinceDays ? Number(sinceDays) : undefined,
+    sinceDays,
     page: analysisPage,
   });
   // One list growing as it is scrolled: every pick stays loaded.
@@ -86,7 +80,7 @@ export default function AiAnalysis() {
         onRetry={refreshCandidates} label={t('candidates_query_label')}>
         <CandidateTable candidates={candidates.items} total={candidates.total} loading={candidates.loading}
           onLoadMore={candidates.loadMore} picked={picked} onPickedChange={setPicked}
-          disabled={run.status === 'running'} />
+          disabled={run.status === 'running'} graded={run.status === 'running' ? run.graded : null} />
       </QueryState>
 
       <Group align="flex-end">
@@ -98,8 +92,7 @@ export default function AiAnalysis() {
           <Slider min={0} max={100} value={minGrade} onChange={changeMinGrade}
             thumbProps={{ 'aria-labelledby': 'min-grade-label' }} />
         </div>
-        <Select label={t('ai_analysis_since_label')} data={SINCE_OPTIONS} value={sinceDays} allowDeselect={false}
-          onChange={changeSinceDays} w={160} />
+        <SinceSelect value={sinceDays} onChange={changeSinceDays} />
       </Group>
 
       <QueryState loading={loading} error={error} hasData={loaded} onRetry={refetch} label={t('ai_analysis_query_label')}>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Anchor, Button, Center, Checkbox, Drawer, ScrollArea, Stack, Table, Text } from '@mantine/core';
+import { Anchor, Badge, Button, Center, Checkbox, Drawer, Group, Loader, ScrollArea, Stack, Table, Text } from '@mantine/core';
 import { getJob } from '../../api/endpoints/analyses.js';
 import QueryState from '../QueryState.jsx';
 import { useFetch } from '../../hooks/useFetch.js';
@@ -29,17 +29,28 @@ function JobDetail({ jobId, picked, onToggle }) {
   );
 }
 
+/** A picked row's place in the running analysis: its grade, failed, or still grading. */
+function RunStatus({ grade }) {
+  if (grade === undefined) {
+    return <Group gap={6} wrap="nowrap"><Loader size="xs" /><Text size="sm">{t('candidates_grading')}</Text></Group>;
+  }
+  return grade === null ? <Badge color="red">{t('candidates_failed')}</Badge> : <Badge>{grade}</Badge>;
+}
+
 /**
  * Ungraded postings to pick from, loaded in batches as the list scrolls. The checkbox picks a row; clicking the row
  * (or Enter / Space on it) opens its description in a drawer.
  *
  * @param {{candidates: Candidate[], total: ?number, loading?: boolean,
  *     onLoadMore: function(): void, picked: Set<string>,
- *     onPickedChange: function(Set<string>): void, disabled?: boolean}} props
+ *     onPickedChange: function(Set<string>): void, disabled?: boolean,
+ *     graded?: ?Object<string, ?number>}} props
  *     `candidates` are the rows loaded so far, `total` all there are.
+ *     `graded` is set while a run grades the picked rows: each finished one's
+ *     grade (null if it failed); it adds a status column.
  */
 export default function CandidateTable({
-  candidates, total, loading = false, onLoadMore, picked, onPickedChange, disabled = false,
+  candidates, total, loading = false, onLoadMore, picked, onPickedChange, disabled = false, graded = null,
 }) {
   const [open, setOpen] = useState(null);
 
@@ -65,6 +76,7 @@ export default function CandidateTable({
               </Table.Th>
               <Table.Th>{t('analysis_col_title')}</Table.Th><Table.Th>{t('analysis_col_company')}</Table.Th>
               <Table.Th>{t('analysis_col_place')}</Table.Th><Table.Th>{t('candidates_col_scraped')}</Table.Th>
+              {graded && <Table.Th>{t('candidates_col_status')}</Table.Th>}
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -88,6 +100,9 @@ export default function CandidateTable({
                 <Table.Td>{candidate.company}</Table.Td>
                 <Table.Td>{candidate.place}</Table.Td>
                 <Table.Td>{new Date(candidate.scraped_at).toLocaleDateString()}</Table.Td>
+                {graded && (
+                  <Table.Td>{picked.has(candidate.job_id) && <RunStatus grade={graded[candidate.job_id]} />}</Table.Td>
+                )}
               </Table.Tr>
             ))}
           </Table.Tbody>

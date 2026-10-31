@@ -76,12 +76,13 @@ export function startAnalysis({ jobIds, model }, options) {
 
 /**
  * Current state of a run started by `startAnalysis`. A failed run's `error`
- * is `{status: 502, ...}` when every grading call failed.
+ * is `{status: 502, ...}` when every grading call failed. `graded` maps each
+ * posting finished so far to its grade, or null when its grading failed.
  *
  * @param {string} analysisId
  * @param {Object=} options Request options, see `request` in client.js.
  * @return {Promise<{status: string, done: number, total: number,
- *     result: ?AnalyzeResult, error: ?Object}>}
+ *     graded: Object<string, ?number>, result: ?AnalyzeResult, error: ?Object}>}
  * @throws {ApiError} 404 if unknown, or lost to an API restart.
  */
 export function getAnalysis(analysisId, options) {
@@ -130,13 +131,14 @@ export function getAnalysisStats({ minGrade, sinceDays } = {}, options) {
 /**
  * Graded postings the user has no generated CV for yet, best fit first.
  *
- * @param {{minGrade?: number, limit?: number, offset?: number}=} params
+ * @param {{minGrade?: number, sinceDays?: number, limit?: number, offset?: number}=} params
+ *     `sinceDays` 1-365 keeps only postings graded within that many days.
  * @param {Object=} options Request options, see `request` in client.js.
  * @return {Promise<Page<Analysis>>}
  */
-export function listAnalysesWithoutCv({ minGrade, limit, offset } = {}, options) {
+export function listAnalysesWithoutCv({ minGrade, sinceDays, limit, offset } = {}, options) {
   return api.get(`/v1/me/analyses/without-cv${queryString({
-    min_grade: minGrade, limit, offset,
+    min_grade: minGrade, since_days: sinceDays, limit, offset,
   })}`, options);
 }
 

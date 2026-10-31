@@ -74,12 +74,15 @@ describe('useAnalyzeRun', () => {
 
   it('shows progress while running', async () => {
     const { result } = await run({
-      'GET /v1/me/analyze/r1': json({ status: 'running', done: 1, total: 3, result: null, error: null }),
+      'GET /v1/me/analyze/r1': json({
+        status: 'running', done: 2, total: 3, graded: { a: 80, b: null }, result: null, error: null,
+      }),
     });
 
-    await waitFor(() => expect(result.current.progress.done).toBe(1));
+    await waitFor(() => expect(result.current.progress.done).toBe(2));
     expect(result.current.status).toBe('running');
     expect(result.current.progress.total).toBe(3);
+    expect(result.current.graded).toEqual({ a: 80, b: null });
   });
 
   it('sends the API field names', async () => {

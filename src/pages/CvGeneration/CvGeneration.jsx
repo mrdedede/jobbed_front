@@ -7,6 +7,7 @@ import JobDrawer from '../../components/JobDrawer.jsx';
 import { pageQuery } from '../../api/paging.js';
 import Pager from '../../components/Pager.jsx';
 import QueryState from '../../components/QueryState.jsx';
+import SinceSelect from '../../components/analysis/SinceSelect.jsx';
 import StopAlert from '../../components/StopAlert.jsx';
 import { formatDateTime } from '../../dateTime.js';
 import CvProfileForm from '../../components/cv/CvProfileForm.jsx';
@@ -30,11 +31,12 @@ export default function CvGeneration() {
   const [details, setDetails] = useState({ profile: null, photo: null });
   const [cvPage, setCvPage] = useState(1);
   const [postingPage, setPostingPage] = useState(1);
+  const [sinceDays, setSinceDays] = useState();
   const gen = useGenerateCv(cvPage);
   // Graded postings that have no CV yet, filtered server-side.
   const analysesQuery = useFetch(
-    (signal) => listAnalysesWithoutCv({ minGrade: MIN_GRADE, ...pageQuery(postingPage) }, { signal }),
-    [postingPage],
+    (signal) => listAnalysesWithoutCv({ minGrade: MIN_GRADE, sinceDays, ...pageQuery(postingPage) }, { signal }),
+    [postingPage, sinceDays],
   );
   const analyses = analysesQuery.data?.items ?? [];
   const refetchAnalyses = analysesQuery.refetch;
@@ -163,7 +165,13 @@ export default function CvGeneration() {
         <Text size="sm" c="dimmed">{t('cv_generation_enter_name')}</Text>
       )}
 
-      <Title order={4}>{t('cv_generation_postings_title', { grade: MIN_GRADE })}</Title>
+      <Group justify="space-between" align="flex-end">
+        <Title order={4}>{t('cv_generation_postings_title', { grade: MIN_GRADE })}</Title>
+        <SinceSelect value={sinceDays} onChange={(days) => {
+          setSinceDays(days);
+          setPostingPage(1);
+        }} />
+      </Group>
       <QueryState loading={analysesQuery.loading} error={analysesQuery.error}
         hasData={analysesQuery.data !== null} onRetry={refetchAnalyses} label={t('cv_generation_postings_label')}
         empty={eligible.length === 0 && t('cv_generation_postings_empty')}>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Group, Paper, Select, Slider, Stack, Text, Title } from '@mantine/core';
+import { Button, Group, Paper, Progress, Select, Slider, Stack, Text, Title } from '@mantine/core';
 import InfoTip from '../InfoTip.jsx';
 import StopAlert from '../StopAlert.jsx';
 import { t } from '../../l10n.js';
@@ -50,10 +50,17 @@ export default function RunPanel({ run, windowDays, onWindowDaysChange, due, pic
         </Group>
         {tooMany && <Text size="sm" c="red">{t('run_too_many', { max: MAX_PICKED })}</Text>}
 
-        {active && progress.total > 0 && (
-          <Text size="sm" c="dimmed" aria-live="polite">
-            {t('run_grading', { done: progress.done, total: progress.total })}
-          </Text>
+        {active && (
+          <Stack gap={4}>
+            {/* Striped until the first poll says how many there are. */}
+            <Progress value={progress.total > 0 ? (100 * progress.done) / progress.total : 100}
+              striped animated={progress.total === 0} aria-label={t('run_title')} />
+            {progress.total > 0 && (
+              <Text size="sm" c="dimmed" aria-live="polite">
+                {t('run_grading', { done: progress.done, total: progress.total })}
+              </Text>
+            )}
+          </Stack>
         )}
         {status === 'done' && (
           <Text size="sm" c="dimmed">

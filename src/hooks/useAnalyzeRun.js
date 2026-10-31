@@ -8,6 +8,7 @@ const POLL_INTERVAL_MS = 2000;
 // One instance: callers put `results` in effect deps, and a fresh [] per
 // render (a failed run has no result) loops them forever (React error #185).
 const NO_RESULTS = [];
+const NO_GRADES = {};
 
 /**
  * Grades the picked postings in one server-side run (the server allows one
@@ -20,8 +21,10 @@ const NO_RESULTS = [];
  *     status: ('idle'|'running'|'done'|'failed'),
  *     progress: {done: number, total: number, analysed: number, failed: number,
  *         skipped: number},
+ *     graded: Object<string, ?number>,
  *     results: Analysis[], stopReason: ?{kind: string, message: string, retryAfter: ?number}}}
- *     `done` of `total` grows while running; the other counts arrive at the end.
+ *     `done` of `total` and `graded` (job id to grade, null if it failed)
+ *     grow while running; the other counts arrive at the end.
  */
 export function useAnalyzeRun() {
   const job = useAsyncJob(
@@ -44,6 +47,7 @@ export function useAnalyzeRun() {
       failed: outcome?.failed ?? 0,
       skipped: outcome?.skipped ?? 0,
     },
+    graded: run?.graded ?? NO_GRADES,
     results: outcome?.results ?? NO_RESULTS,
     stopReason: job.status === 'failed' ? stopReasonOf(job, LABELS) : null,
   };
