@@ -106,7 +106,7 @@ describe('useAnalyzeRun', () => {
   });
 
   it('reports a run whose every grading call failed', async () => {
-    const { result } = await run({
+    const { result, rerender } = await run({
       'GET /v1/me/analyze/r1': json({
         status: 'failed', done: 1, total: 1, result: null,
         error: { status: 502, detail: 'every grading call failed' },
@@ -114,6 +114,10 @@ describe('useAnalyzeRun', () => {
     });
     await waitFor(() => expect(result.current.status).toBe('failed'));
     expect(result.current.stopReason.kind).toBe('all-failed');
+    // Same array across renders: AiAnalysis has it in effect deps (React #185).
+    const { results } = result.current;
+    rerender();
+    expect(result.current.results).toBe(results);
   });
 
   it('ignores a second start while running', async () => {

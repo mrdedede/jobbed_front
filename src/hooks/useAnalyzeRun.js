@@ -5,6 +5,9 @@ import { t } from '../l10n.js';
 
 const LABELS = { doing: t('stop_labels_analysis_doing'), thing: t('stop_labels_analysis_thing') };
 const POLL_INTERVAL_MS = 2000;
+// One instance: callers put `results` in effect deps, and a fresh [] per
+// render (a failed run has no result) loops them forever (React error #185).
+const NO_RESULTS = [];
 
 /**
  * Grades the picked postings in one server-side run (the server allows one
@@ -41,7 +44,7 @@ export function useAnalyzeRun() {
       failed: outcome?.failed ?? 0,
       skipped: outcome?.skipped ?? 0,
     },
-    results: outcome?.results ?? [],
+    results: outcome?.results ?? NO_RESULTS,
     stopReason: job.status === 'failed' ? stopReasonOf(job, LABELS) : null,
   };
 }
