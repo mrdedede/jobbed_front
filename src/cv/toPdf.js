@@ -2,15 +2,18 @@ export const escape = (text) => text.replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
 ));
 
-const line = ([bold, rest]) => `<p>${bold ? `<b>${escape(bold)}</b>` : ''}${escape(rest)}</p>`;
+const line = ([bold, rest]) => (
+  bold ? `<p class="lead"><b>${escape(bold)}</b>${escape(rest)}</p>` : `<p>${escape(rest)}</p>`
+);
 
 const CSS = `
-  @page { size: A4; margin: 16mm; }
-  body { font: 10.5pt/1.35 Calibri, Arial, sans-serif; color: #111; margin: 0; }
+  @page { size: A4; margin: 14mm; }
+  body { font: 10pt/1.25 Calibri, Arial, sans-serif; color: #111; margin: 0; }
   header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
   h1 { font-size: 22pt; margin: 0 0 4px; }
-  h2 { font-size: 12pt; margin: 14px 0 4px; border-bottom: 1px solid #999; }
-  p { margin: 0 0 3px; }
+  h2 { font-size: 11pt; margin: 8px 0 2px; border-bottom: 1px solid #999; }
+  p { margin: 0; }
+  p:not(.lead) + p.lead { margin-top: 5px; }
   img { width: 32mm; height: 32mm; object-fit: cover; border-radius: 50%; }
 `;
 

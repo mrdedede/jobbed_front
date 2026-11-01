@@ -350,6 +350,50 @@ describe('CvGeneration', () => {
     expect(listCalls.length).toBeGreaterThan(1);
   });
 
+  it('reorders experiences and skills, adds a category, drops a blank one', async () => {
+    const { CV } = await import('../cv/fixture.js');
+    let sent = null;
+    mockFetch({
+      'GET /v1/me/analyses/without-cv': page([]),
+      'GET /v1/me/generated-cvs': () => page([{ ...generated, cv: sent ?? CV }]),
+      'PUT /v1/me/generated-cvs/c1': ({ body }) => {
+        sent = body.cv;
+        return json({ ...generated, cv: sent });
+      },
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<CvGeneration />);
+
+    await user.click(await screen.findByRole('button', { name: 'Review / edit' }));
+    const dialog = await screen.findByRole('dialog');
+    const button = (name) => within(dialog).getByRole('button', { name });
+
+    expect(button('Move experience 1 up')).toBeDisabled();
+    expect(button(`Move experience ${CV.experiences.length} down`)).toBeDisabled();
+    await user.click(button('Move experience 2 up'));
+    // Focus follows the item; its "up" is now disabled, so "down" takes it.
+    expect(button('Move experience 1 down')).toHaveFocus();
+
+    await user.click(button('Move skill group 1 down'));
+    expect(button('Move skill group 2 up')).toHaveFocus();
+
+    await user.click(button('Add skill category'));
+    await user.click(button('Add skill category'));
+    const labels = within(dialog).getAllByLabelText('Competence');
+    const lists = within(dialog).getAllByLabelText('Skills (comma-separated)');
+    await user.type(labels[2], 'Certifications');
+    await user.type(lists[2], 'AWS Solutions Architect, 2023');
+    await user.type(labels[3], 'Left empty');
+    await user.click(button('Save'));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(sent.experiences).toEqual([CV.experiences[1], CV.experiences[0]]);
+    expect(sent.skills).toEqual([
+      CV.skills[1], CV.skills[0],
+      { competence: 'Certifications', skills: ['AWS Solutions Architect', '2023'] },
+    ]);
+  });
+
   it('keeps the editor open when saving fails', async () => {
     mockFetch({
       'GET /v1/me/analyses/without-cv': page([]),

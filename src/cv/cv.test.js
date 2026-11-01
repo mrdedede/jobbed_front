@@ -9,7 +9,8 @@ import { toDocx } from './toDocx.js';
 import { toHtml } from './toPdf.js';
 import { letterHtml, letterParagraphs, letterToDocx } from './letter.js';
 
-// Mirrors tests/test_docx_gen.py in the back end, line for line.
+// Mirrors tests/test_docx_gen.py in the back end, line for line; only the
+// company grouping below is front-end only.
 describe('sections', () => {
   it('makes a skills group a bold label and a joined list', () => {
     expect(sections(CV).skills[0]).toEqual(['Go: ', 'Go, gRPC']);
@@ -31,6 +32,82 @@ describe('sections', () => {
 
   it('invents no languages', () => {
     expect(JSON.stringify(sections(CV)).toLowerCase()).not.toContain('language');
+  });
+});
+
+describe('sections company grouping', () => {
+  const position = (role, company, start_date, end_date, location = 'Lille') => ({
+    role, company, location, start_date, end_date, bullets: [`${role} work.`],
+  });
+  const lines = (...experiences) => sections({ ...CV, experiences }).experiences;
+  const headers = (...experiences) => lines(...experiences).filter(([bold]) => bold).map(([bold]) => bold);
+
+  it('merges consecutive positions under the whole period', () => {
+    expect(lines(
+      position('Senior', 'Acme', 'January, 2022', 'Present'),
+      position('Junior', ' acme ', 'January, 2020', 'December, 2021'),
+    )).toEqual([
+      ['Acme', ', Lille (January, 2020 - Present)'],
+      ['Senior', ' (January, 2022 - Present)'],
+      ['', '• Senior work.'],
+      ['Junior', ' (January, 2020 - December, 2021)'],
+      ['', '• Junior work.'],
+    ]);
+  });
+
+  it('finds the whole period whatever the order', () => {
+    expect(lines(
+      position('Junior', 'Acme', 'January, 2020', 'December, 2021'),
+      position('Senior', 'Acme', 'January, 2022', 'June, 2023'),
+    )[0]).toEqual(['Acme', ', Lille (January, 2020 - June, 2023)']);
+  });
+
+  it('separates positions with a gap', () => {
+    expect(headers(
+      position('Senior', 'Acme', 'March, 2022', 'Present'),
+      position('Junior', 'Acme', 'January, 2020', 'December, 2021'),
+    )).toEqual(['Senior - Acme', 'Junior - Acme']);
+  });
+
+  it('separates different companies, and the same company with a job between', () => {
+    expect(headers(
+      position('C', 'Acme', 'January, 2022', 'Present'),
+      position('B', 'Beta', 'January, 2021', 'December, 2021'),
+      position('A', 'Acme', 'January, 2020', 'December, 2020'),
+    )).toEqual(['C - Acme', 'B - Beta', 'A - Acme']);
+  });
+
+  it('reads accented months and a translated Present', () => {
+    expect(lines(
+      position('Sênior', 'Acme', 'março de 2022', 'Atual'),
+      position('Júnior', 'Acme', 'fevereiro de 2021', 'fevereiro de 2022'),
+    )[0]).toEqual(['Acme', ', Lille (fevereiro de 2021 - Atual)']);
+    expect(lines(
+      position('Senior', 'Acme', 'septembre, 2021', 'Présent'),
+      position('Junior', 'Acme', 'février, 2020', 'août, 2021'),
+    )[0]).toEqual(['Acme', ', Lille (février, 2020 - Présent)']);
+  });
+
+  it('keeps positions separate when a date cannot be read', () => {
+    expect(headers(
+      position('Senior', 'Acme', '2022', 'Present'),
+      position('Junior', 'Acme', 'January, 2020', 'December, 2021'),
+    )).toEqual(['Senior - Acme', 'Junior - Acme']);
+    expect(headers(
+      position('Senior', 'Acme', 'January, 2022', 'Present'),
+      position('Junior', 'Acme', 'January, 2020', '  '),
+    )).toEqual(['Senior - Acme', 'Junior - Acme']);
+  });
+
+  it('moves differing locations to the role lines', () => {
+    expect(lines(
+      position('Senior', 'Acme', 'January, 2022', 'Present', 'Paris'),
+      position('Junior', 'Acme', 'January, 2020', 'December, 2021', 'Lille'),
+    ).filter(([bold]) => bold)).toEqual([
+      ['Acme', ' (January, 2020 - Present)'],
+      ['Senior', ', Paris (January, 2022 - Present)'],
+      ['Junior', ', Lille (January, 2020 - December, 2021)'],
+    ]);
   });
 });
 
@@ -88,6 +165,12 @@ describe('toHtml', () => {
     expect(html).not.toContain('<img');
     expect(toHtml(doc, 'blob:x')).toContain('<img src="blob:x"');
   });
+
+  it('marks only bold-led lines, which the spacing rule keys on', () => {
+    const html = toHtml(buildDocument(GENERATED, PROFILE), null);
+    expect(html).toContain('<p class="lead"><b>Go: </b>Go, gRPC</p>');
+    expect(html).toContain('<p>• Cut p99 latency by 40%.</p>');
+  });
 });
 
 describe('toDocx', () => {
@@ -104,6 +187,18 @@ describe('toDocx', () => {
     for (const needle of ['Ana Souza', 'Backend Engineer', 'Cut p99 latency by 40%.', 'Français, C1 - Courant']) {
       expect(text).toContain(needle);
     }
+  });
+
+  it('sets narrow margins and a gap only where a bold-led line follows a plain one', async () => {
+    const blob = await toDocx(buildDocument(GENERATED, PROFILE));
+    const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+    const xml = await zip.file('word/document.xml').async('string');
+    const paragraphWith = (text) => xml.split('<w:p>').find((p) => p.includes(text));
+
+    expect(Number(xml.match(/<w:pgMar[^>]*w:left="(\d+)"/)[1])).toBeLessThan(1000);
+    expect(paragraphWith('Junior Engineer')).toContain('w:before="100"');
+    expect(paragraphWith('Cloud: ')).toContain('w:before="0"');
+    expect(paragraphWith('Cut p99 latency')).toContain('w:before="0"');
   });
 });
 

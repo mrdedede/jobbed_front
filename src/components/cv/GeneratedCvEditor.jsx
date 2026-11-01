@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { flushSync } from 'react-dom';
 import {
   ActionIcon, Alert, Badge, Button, Group, Modal, Paper, Stack, Text, TextInput, Textarea, Title,
 } from '@mantine/core';
@@ -26,11 +27,11 @@ function toForm(cv) {
 
 const splitOn = (text, separator) => text.split(separator).map((s) => s.trim()).filter(Boolean);
 
-/** Back to the stored shape; blank bullets and skills are dropped. */
+/** Back to the stored shape; blank bullets and skills, and groups left with no skills, are dropped. */
 function fromForm(form) {
   return {
     ...form,
-    skills: form.skills.map((g) => ({ ...g, skills: splitOn(g.skills, ',') })),
+    skills: form.skills.map((g) => ({ ...g, skills: splitOn(g.skills, ',') })).filter((g) => g.skills.length > 0),
     experiences: form.experiences.map((x) => ({ ...x, bullets: splitOn(x.bullets, '\n') })),
   };
 }
@@ -38,6 +39,19 @@ function fromForm(form) {
 function RemoveButton({ label, onClick }) {
   return (
     <ActionIcon variant="subtle" color="red" aria-label={label} onClick={onClick}>×</ActionIcon>
+  );
+}
+
+const moveButtonId = (list, index, direction) => `cv-move-${list}-${index}-${direction}`;
+
+function MoveButtons({ list, index, count, upLabel, downLabel, onMove }) {
+  return (
+    <>
+      <ActionIcon id={moveButtonId(list, index, 'up')} variant="subtle" aria-label={upLabel}
+        disabled={index === 0} onClick={() => onMove(list, index, -1)}>↑</ActionIcon>
+      <ActionIcon id={moveButtonId(list, index, 'down')} variant="subtle" aria-label={downLabel}
+        disabled={index === count - 1} onClick={() => onMove(list, index, 1)}>↓</ActionIcon>
+    </>
   );
 }
 
@@ -82,6 +96,20 @@ export default function GeneratedCvEditor({ generated, onClose, onSave }) {
   const removeItem = (list, index) => setForm((f) => ({
     ...f, [list]: f[list].filter((_, i) => i !== index),
   }));
+  const moveItem = (list, index, delta) => {
+    const target = index + delta;
+    flushSync(() => setForm((f) => {
+      const items = [...f[list]];
+      [items[index], items[target]] = [items[target], items[index]];
+      return { ...f, [list]: items };
+    }));
+    // Rows are keyed by index, so focus stays put while the item moves: follow
+    // the item, or a second key press would move its neighbour back.
+    const [same, other] = delta < 0 ? ['up', 'down'] : ['down', 'up'];
+    const button = document.getElementById(moveButtonId(list, target, same));
+    (button.disabled ? document.getElementById(moveButtonId(list, target, other)) : button).focus();
+  };
+  const addSkillGroup = () => set('skills', [...form.skills, { competence: '', skills: '' }]);
   const input = (list, index, key, label, item) => (
     <TextInput key={key} label={label} value={item[key]}
       onChange={(event) => setItem(list, index, key, event.currentTarget.value)} />
@@ -110,15 +138,24 @@ export default function GeneratedCvEditor({ generated, onClose, onSave }) {
               onChange={(event) => setItem('skills', i, 'competence', event.currentTarget.value)} />
             <TextInput label={t('cv_review_skills_list')} value={group.skills} style={{ flex: 1 }}
               onChange={(event) => setItem('skills', i, 'skills', event.currentTarget.value)} />
+            <MoveButtons list="skills" index={i} count={form.skills.length} onMove={moveItem}
+              upLabel={t('cv_review_move_skill_group_up', { n: i + 1 })}
+              downLabel={t('cv_review_move_skill_group_down', { n: i + 1 })} />
             <RemoveButton label={t('cv_review_remove_skill_group', { n: i + 1 })} onClick={() => removeItem('skills', i)} />
           </Group>
         ))}
+        <Group>
+          <Button variant="default" size="xs" onClick={addSkillGroup}>{t('cv_review_add_skill_group')}</Button>
+        </Group>
 
         <Title order={5}>{t('cv_review_experiences')}</Title>
         {form.experiences.map((experience, i) => (
           <Paper key={i} withBorder p="sm">
             <Stack gap="xs">
-              <Group justify="flex-end">
+              <Group justify="flex-end" gap="xs">
+                <MoveButtons list="experiences" index={i} count={form.experiences.length} onMove={moveItem}
+                  upLabel={t('cv_review_move_experience_up', { n: i + 1 })}
+                  downLabel={t('cv_review_move_experience_down', { n: i + 1 })} />
                 <RemoveButton label={t('cv_review_remove_experience', { n: i + 1 })} onClick={() => removeItem('experiences', i)} />
               </Group>
               {EXPERIENCE_FIELDS.map(([key, label]) => input('experiences', i, key, label, experience))}
