@@ -1,4 +1,3 @@
-/** Same CV as `CV` in the back end's tests/test_docx_gen.py. */
 export const CV = {
   cv_introduction: 'Software Engineer, Lille',
   profile_text: 'Six years on distributed backends.',

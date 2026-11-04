@@ -9,6 +9,7 @@ describe('toStopReason', () => {
   it.each([
     [409, 'no active CV', 'no-cv'],
     [409, 'no analysis for job', 'no-analysis'],
+    [409, 'already has a generated CV', 'has-cv'],
     [409, 'analysis already running', 'busy'],
     [409, 'generation already running', 'busy'],
     [409, 'something new', 'error'],

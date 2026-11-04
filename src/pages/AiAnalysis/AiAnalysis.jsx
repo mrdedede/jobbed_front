@@ -97,7 +97,8 @@ export default function AiAnalysis() {
 
       <QueryState loading={loading} error={error} hasData={loaded} onRetry={refetch} label={t('ai_analysis_query_label')}>
         {stats && <GradeCharts stats={stats} />}
-        <AnalysisTable analyses={analyses} />
+        <AnalysisTable analyses={analyses} regradeDisabled={run.status === 'running'}
+          onRegrade={(jobId) => run.start({ jobIds: [jobId], regrade: true })} />
         <Pager total={total} page={analysisPage} onChange={setAnalysisPage} />
       </QueryState>
     </Stack>

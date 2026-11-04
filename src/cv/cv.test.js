@@ -9,8 +9,6 @@ import { toDocx } from './toDocx.js';
 import { toHtml } from './toPdf.js';
 import { letterHtml, letterParagraphs, letterToDocx } from './letter.js';
 
-// Mirrors tests/test_docx_gen.py in the back end, line for line; only the
-// company grouping below is front-end only.
 describe('sections', () => {
   it('makes a skills group a bold label and a joined list', () => {
     expect(sections(CV).skills[0]).toEqual(['Go: ', 'Go, gRPC']);
@@ -35,79 +33,48 @@ describe('sections', () => {
   });
 });
 
-describe('sections company grouping', () => {
+describe('sections positions', () => {
   const position = (role, company, start_date, end_date, location = 'Lille') => ({
     role, company, location, start_date, end_date, bullets: [`${role} work.`],
   });
-  const lines = (...experiences) => sections({ ...CV, experiences }).experiences;
-  const headers = (...experiences) => lines(...experiences).filter(([bold]) => bold).map(([bold]) => bold);
 
-  it('merges consecutive positions under the whole period', () => {
-    expect(lines(
+  it('gives every position the same line, even at one company', () => {
+    expect(sections({ ...CV, experiences: [
       position('Senior', 'Acme', 'January, 2022', 'Present'),
-      position('Junior', ' acme ', 'January, 2020', 'December, 2021'),
-    )).toEqual([
-      ['Acme', ', Lille (January, 2020 - Present)'],
-      ['Senior', ' (January, 2022 - Present)'],
+      position('Junior', 'Acme', 'January, 2020', 'December, 2021'),
+    ] }).experiences).toEqual([
+      ['Senior - Acme', ', Lille (January, 2022 - Present)'],
       ['', '• Senior work.'],
-      ['Junior', ' (January, 2020 - December, 2021)'],
+      ['Junior - Acme', ', Lille (January, 2020 - December, 2021)'],
       ['', '• Junior work.'],
     ]);
   });
+});
 
-  it('finds the whole period whatever the order', () => {
-    expect(lines(
-      position('Junior', 'Acme', 'January, 2020', 'December, 2021'),
-      position('Senior', 'Acme', 'January, 2022', 'June, 2023'),
-    )[0]).toEqual(['Acme', ', Lille (January, 2020 - June, 2023)']);
-  });
+describe('sections certifications', () => {
+  const certifications = (...list) => sections({ ...CV, certifications: list }).certifications;
 
-  it('separates positions with a gap', () => {
-    expect(headers(
-      position('Senior', 'Acme', 'March, 2022', 'Present'),
-      position('Junior', 'Acme', 'January, 2020', 'December, 2021'),
-    )).toEqual(['Senior - Acme', 'Junior - Acme']);
-  });
-
-  it('separates different companies, and the same company with a job between', () => {
-    expect(headers(
-      position('C', 'Acme', 'January, 2022', 'Present'),
-      position('B', 'Beta', 'January, 2021', 'December, 2021'),
-      position('A', 'Acme', 'January, 2020', 'December, 2020'),
-    )).toEqual(['C - Acme', 'B - Beta', 'A - Acme']);
-  });
-
-  it('reads accented months and a translated Present', () => {
-    expect(lines(
-      position('Sênior', 'Acme', 'março de 2022', 'Atual'),
-      position('Júnior', 'Acme', 'fevereiro de 2021', 'fevereiro de 2022'),
-    )[0]).toEqual(['Acme', ', Lille (fevereiro de 2021 - Atual)']);
-    expect(lines(
-      position('Senior', 'Acme', 'septembre, 2021', 'Présent'),
-      position('Junior', 'Acme', 'février, 2020', 'août, 2021'),
-    )[0]).toEqual(['Acme', ', Lille (février, 2020 - Présent)']);
-  });
-
-  it('keeps positions separate when a date cannot be read', () => {
-    expect(headers(
-      position('Senior', 'Acme', '2022', 'Present'),
-      position('Junior', 'Acme', 'January, 2020', 'December, 2021'),
-    )).toEqual(['Senior - Acme', 'Junior - Acme']);
-    expect(headers(
-      position('Senior', 'Acme', 'January, 2022', 'Present'),
-      position('Junior', 'Acme', 'January, 2020', '  '),
-    )).toEqual(['Senior - Acme', 'Junior - Acme']);
-  });
-
-  it('moves differing locations to the role lines', () => {
-    expect(lines(
-      position('Senior', 'Acme', 'January, 2022', 'Present', 'Paris'),
-      position('Junior', 'Acme', 'January, 2020', 'December, 2021', 'Lille'),
-    ).filter(([bold]) => bold)).toEqual([
-      ['Acme', ' (January, 2020 - Present)'],
-      ['Senior', ', Paris (January, 2022 - Present)'],
-      ['Junior', ', Lille (January, 2020 - December, 2021)'],
+  it('shows the issuer and year it has', () => {
+    expect(certifications(
+      { name: 'CKA', issuer: 'CNCF', year: '2024' },
+      { name: 'TOEIC', issuer: '', year: '2023' },
+      { name: 'AWS SAA', issuer: 'Amazon', year: ' ' },
+      { name: 'PMP', issuer: '', year: '' },
+    )).toEqual([
+      ['CKA', ', CNCF (2024)'], ['TOEIC', ' (2023)'], ['AWS SAA', ', Amazon'], ['PMP', ''],
     ]);
+  });
+
+  it('is empty for a CV generated before the field existed', () => {
+    expect('certifications' in CV).toBe(false);
+    expect(sections(CV).certifications).toEqual([]);
+  });
+
+  it('is in the document in the CV language, and absent when there are none', () => {
+    const titles = (cv) => buildDocument({ ...GENERATED, cv }, PROFILE).sections.map((s) => s.title);
+    expect(titles(CV)).not.toContain('CERTIFICATIONS');
+    expect(titles({ ...CV, certifications: [{ name: 'CKA', issuer: '', year: '' }] }))
+      .toContain('CERTIFICATIONS');
   });
 });
 

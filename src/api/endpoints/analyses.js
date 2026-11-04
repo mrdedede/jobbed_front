@@ -24,6 +24,7 @@ const CANDIDATES_TIMEOUT_MS = 170_000;
  * @property {?string} ai_model
  * @property {?string} depth_analysis
  * @property {string} analysed_at ISO 8601 timestamp.
+ * @property {boolean} has_cv A CV was generated from it, so it cannot be regraded.
  */
 
 /**
@@ -70,8 +71,8 @@ const CANDIDATES_TIMEOUT_MS = 170_000;
  * @throws {ApiError} 409 if there is no active CV or a run is in flight,
  *     429 if the daily cap is reached (see `retryAfter`).
  */
-export function startAnalysis({ jobIds, model }, options) {
-  return api.post('/v1/me/analyze', { job_ids: jobIds, model }, options);
+export function startAnalysis({ jobIds, model, regrade }, options) {
+  return api.post('/v1/me/analyze', { job_ids: jobIds, model, regrade }, options);
 }
 
 /**
