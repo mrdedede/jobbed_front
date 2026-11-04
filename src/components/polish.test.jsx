@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import QueryState from './QueryState.jsx';
 import AnalysisTable from './analysis/AnalysisTable.jsx';
+import FactFlags from './cv/FactFlags.jsx';
 import GeneratedCvEditor from './cv/GeneratedCvEditor.jsx';
 import { GENERATED } from '../cv/fixture.js';
 import { loadProfile } from '../cv/profileStore.js';
@@ -129,6 +130,45 @@ describe('GeneratedCvEditor certifications', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(onSave.mock.calls[0][0].certifications).toEqual([{ name: 'CKA', issuer: 'CNCF', year: '2024' }]);
+  });
+});
+
+describe('FactFlags', () => {
+  const flags = [{ kind: 'number', value: '40' }, { kind: 'employer', value: 'Acme' }];
+  const fact = (draft) => renderWithProviders(<FactFlags flags={flags} draft={draft} message="Check:" />);
+
+  it('lists the flags the draft still says, from any nested string', () => {
+    fact({ experiences: [{ company: 'Acme', bullets: 'Cut latency by 40%.' }] });
+
+    expect(screen.getByText('40, Acme')).toBeInTheDocument();
+  });
+
+  it('matches a number as a whole token, also at the start of a line', () => {
+    fact('Founded in 2040, then\n40 clients');
+    expect(screen.getByText('40')).toBeInTheDocument();
+  });
+
+  it('does not take a longer number for the flagged one', () => {
+    fact('Founded in 2040');
+    expect(screen.queryByText('Check:')).not.toBeInTheDocument();
+  });
+
+  it('clears a flag once the user edits its value away in the editor', async () => {
+    const user = userEvent.setup();
+    const generated = { ...GENERATED, fact_flags: [{ kind: 'number', value: '40' }] };
+    renderWithProviders(<GeneratedCvEditor generated={generated} onClose={vi.fn()} onSave={vi.fn()} />);
+    expect(screen.getByText(/couldn't find these/)).toBeInTheDocument();
+
+    const bullets = screen.getByDisplayValue(/Cut p99 latency by 40%/);
+    await user.clear(bullets);
+    await user.type(bullets, 'Cut p99 latency.');
+
+    expect(screen.queryByText(/couldn't find these/)).not.toBeInTheDocument();
+  });
+
+  it('shows the watermark notice in the editor', () => {
+    renderWithProviders(<GeneratedCvEditor generated={GENERATED} onClose={vi.fn()} onSave={vi.fn()} />);
+    expect(screen.getByText(/invisible watermark/)).toBeInTheDocument();
   });
 });
 

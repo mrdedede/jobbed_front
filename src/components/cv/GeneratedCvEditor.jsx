@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import {
   ActionIcon, Alert, Badge, Button, Group, Modal, Paper, Stack, Text, TextInput, Textarea, Title,
 } from '@mantine/core';
+import FactFlags from './FactFlags.jsx';
 import JobDrawer from '../JobDrawer.jsx';
 import { t } from '../../l10n.js';
 
@@ -128,6 +129,8 @@ export default function GeneratedCvEditor({ generated, onClose, onSave }) {
         <Alert color="yellow">
           {t('cv_review_ai_warning')}
         </Alert>
+        <FactFlags flags={generated.fact_flags} draft={form} message={t('cv_review_fact_flags')} />
+        <Text size="sm" c="dimmed">{t('ai_watermark_notice')}</Text>
         <Group>
           <Button variant="default" size="xs" onClick={() => setShowJob(true)}>{t('cover_letter_job_details')}</Button>
         </Group>

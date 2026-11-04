@@ -24,6 +24,7 @@ import { api } from '../client.js';
  * @property {LetterAnswers} answers
  * @property {string} letter Plain text, paragraphs separated by blank lines.
  * @property {string} created_at
+ * @property {Array<{kind: string, value: string}>} fact_flags Numbers the fact check could not find in the letter's sources.
  */
 
 /**

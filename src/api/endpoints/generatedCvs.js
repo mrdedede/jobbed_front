@@ -15,6 +15,7 @@ import { api } from '../client.js';
  * @property {Object} cv The model's CV, see `sections` in cv/sections.js.
  * @property {string} created_at When it was generated, ISO 8601; edits keep it.
  * @property {string} url The posting.
+ * @property {Array<{kind: string, value: string}>} fact_flags What the fact check could not find in the source CV.
  */
 
 /**

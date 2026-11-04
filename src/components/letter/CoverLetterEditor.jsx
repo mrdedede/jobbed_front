@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Alert, Badge, Button, CopyButton, Group, Modal, Stack, Text, Textarea,
 } from '@mantine/core';
+import FactFlags from '../cv/FactFlags.jsx';
 import JobDrawer from '../JobDrawer.jsx';
 import { QUESTIONS } from './questions.js';
 import { t } from '../../l10n.js';
@@ -46,6 +47,8 @@ export default function CoverLetterEditor({ letter, onClose, onSave }) {
       title={<Group gap="xs">{t('cover_letter_review_title', { company: letter.company, title: letter.title })}<Badge>{letter.locale}</Badge></Group>}>
       <Stack>
         <Alert color="yellow">{t('cover_letter_review_ai_warning')}</Alert>
+        <FactFlags flags={letter.fact_flags} draft={text} message={t('cover_letter_fact_flags')} />
+        <Text size="sm" c="dimmed">{t('ai_watermark_notice')}</Text>
         <Group>
           <Button variant="default" size="xs" onClick={() => setShowJob(true)}>{t('cover_letter_job_details')}</Button>
         </Group>
