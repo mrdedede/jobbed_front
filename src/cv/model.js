@@ -41,6 +41,7 @@ export function buildDocument(generated, profile) {
       { title: l10n.SKILLS_TITLE, lines: parts.skills },
       { title: l10n.EXPERIENCES_TITLE, lines: parts.experiences },
       { title: l10n.EDUCATION_TITLE, lines: parts.education },
+      { title: l10n.CERTIFICATIONS_TITLE, lines: parts.certifications },
       { title: l10n.LANGUAGES_TITLE, lines: languages },
     ].filter((section) => section.lines.length > 0),
   };

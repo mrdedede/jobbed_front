@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Anchor, Badge, Drawer, Stack, Table, Text, Typography } from '@mantine/core';
+import { Anchor, Badge, Button, Drawer, Stack, Table, Text, Typography } from '@mantine/core';
 import ReactMarkdown from 'react-markdown';
 import { t } from '../../l10n.js';
 import { formatDateTime } from '../../dateTime.js';
@@ -19,12 +19,22 @@ export function GradeBadge({ grade }) {
 
 /**
  * Analyses table; clicking a row (or Enter / Space on it) opens the full
- * analysis in a drawer.
+ * analysis in a drawer, where it can be graded again unless a CV was generated
+ * from it.
  *
- * @param {{analyses: Analysis[]}} props
+ * @param {{analyses: Analysis[], onRegrade: (function(string): void)=,
+ *     regradeDisabled: boolean=}} props No `onRegrade`, no button.
+ *     `regradeDisabled`: a run is in progress.
  */
-export default function AnalysisTable({ analyses }) {
+export default function AnalysisTable({ analyses, onRegrade, regradeDisabled }) {
   const [selected, setSelected] = useState(null);
+
+  const regrade = () => {
+    if (!window.confirm(t('analysis_regrade_confirm'))) return;
+    onRegrade(selected.job_id);
+    // Closed, not updated: the run reports below and refreshes the list.
+    setSelected(null);
+  };
 
   if (analyses.length === 0) return <Text c="dimmed">{t('analysis_no_match')}</Text>;
 
@@ -66,6 +76,14 @@ export default function AnalysisTable({ analyses }) {
             <GradeBadge grade={selected.adequation_grade} />
             <Text size="sm" c="dimmed">{t('analysis_graded_at', { when: formatDateTime(selected.analysed_at) })}</Text>
             <Anchor href={selected.url} target="_blank" rel="noreferrer">{t('analysis_open_posting')}</Anchor>
+            {onRegrade && (
+              <div>
+                <Button variant="default" size="xs" disabled={selected.has_cv || regradeDisabled} onClick={regrade}>
+                  {t('analysis_regrade')}
+                </Button>
+                {selected.has_cv && <Text size="xs" c="dimmed" mt={4}>{t('analysis_regrade_has_cv')}</Text>}
+              </div>
+            )}
             {selected.depth_analysis
               ? <Typography><ReactMarkdown>{selected.depth_analysis}</ReactMarkdown></Typography>
               : <Text c="dimmed">{t('analysis_no_details')}</Text>}

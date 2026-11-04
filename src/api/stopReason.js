@@ -18,6 +18,9 @@ export function toStopReason(error, { doing, thing }) {
     if (detail === 'no analysis for job') {
       return { kind: 'no-analysis', message: t('stop_no_analysis'), retryAfter };
     }
+    if (detail === 'already has a generated CV') {
+      return { kind: 'has-cv', message: t('stop_has_cv'), retryAfter };
+    }
     if (/already running/.test(detail ?? '')) {
       return {
         kind: 'busy',

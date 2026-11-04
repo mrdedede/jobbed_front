@@ -17,7 +17,7 @@ const NO_GRADES = {};
  *
  * Unmounting stops tracking only; the server finishes the run.
  *
- * @return {{start: function({jobIds: string[], model?: string}): Promise<void>,
+ * @return {{start: function({jobIds: string[], model?: string, regrade?: boolean}): Promise<void>,
  *     status: ('idle'|'running'|'done'|'failed'),
  *     progress: {done: number, total: number, analysed: number, failed: number,
  *         skipped: number},

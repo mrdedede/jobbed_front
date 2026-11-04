@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { notifications } from '@mantine/notifications';
 import { describe, expect, it, vi } from 'vitest';
 import AiAnalysis from './AiAnalysis/AiAnalysis.jsx';
 import CoverLetters from './CoverLetters/CoverLetters.jsx';
@@ -223,6 +224,38 @@ describe('AiAnalysis', () => {
     expect(screen.getByText(formatDateTime(graded.analysed_at))).toBeInTheDocument();
     // Go Dev is graded and no longer offered; Rust Dev stays picked.
     expect(await screen.findByRole('button', { name: 'Analyse 1 selected' })).toBeInTheDocument();
+  });
+
+  it('regrades a stored analysis and shows the new grade', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const analysis = {
+      job_id: 'j1', adequation_grade: 0, company: 'Acme', title: 'Go Dev', place: 'Paris',
+      url: 'https://x', analysed_at: '2026-10-21T08:00:00Z', depth_analysis: 'The CV is missing', has_cv: false,
+    };
+    let stored = [analysis];
+    const fetchMock = mockFetch({
+      'GET /v1/me/analyses/candidates': page([]),
+      'GET /v1/me/analyses': () => page(stored),
+      'POST /v1/me/analyze': json({ analysis_id: 'r1' }, 202),
+      'GET /v1/me/analyze/r1': () => {
+        const regraded = { ...analysis, adequation_grade: 72, depth_analysis: 'Real verdict' };
+        stored = [regraded];
+        return json({
+          status: 'done', done: 1, total: 1, error: null,
+          result: { analysed: 1, failed: 0, skipped: 0, results: [regraded] },
+        });
+      },
+    });
+    renderWithProviders(<AiAnalysis />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Open the analysis of Go Dev at Acme' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Regrade' }));
+
+    const [, init] = fetchMock.mock.calls.find(([path]) => path === '/v1/me/analyze');
+    expect(JSON.parse(init.body)).toEqual({ job_ids: ['j1'], regrade: true });
+    expect(await screen.findByText('72')).toBeInTheDocument();
+    // The store outlives the test: this run's toast would crowd out a later test's.
+    notifications.clean();
   });
 
   it('opens a posting to read its description and pick it from there', async () => {

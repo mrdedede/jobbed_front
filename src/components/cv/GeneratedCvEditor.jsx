@@ -15,6 +15,10 @@ const EDUCATION_FIELDS = [
   ['location', t('cv_review_location')], ['period', t('cv_review_period')],
   ['degree', t('cv_review_degree')], ['details', t('cv_review_details')],
 ];
+const CERTIFICATION_FIELDS = [
+  ['name', t('cv_review_certification_name')], ['issuer', t('cv_review_certification_issuer')],
+  ['year', t('cv_review_certification_year')],
+];
 
 /** The CV with its string lists as editable text: bullets one per line, skills comma-separated. */
 function toForm(cv) {
@@ -22,6 +26,8 @@ function toForm(cv) {
     ...cv,
     skills: cv.skills.map((g) => ({ ...g, skills: g.skills.join(', ') })),
     experiences: cv.experiences.map((x) => ({ ...x, bullets: x.bullets.join('\n') })),
+    // Absent from CVs generated before the field existed.
+    certifications: cv.certifications ?? [],
   };
 }
 
@@ -173,6 +179,18 @@ export default function GeneratedCvEditor({ generated, onClose, onSave }) {
                 <RemoveButton label={t('cv_review_remove_education', { n: i + 1 })} onClick={() => removeItem('education', i)} />
               </Group>
               {EDUCATION_FIELDS.map(([key, label]) => input('education', i, key, label, education))}
+            </Stack>
+          </Paper>
+        ))}
+
+        {form.certifications.length > 0 && <Title order={5}>{t('cv_review_certifications')}</Title>}
+        {form.certifications.map((certification, i) => (
+          <Paper key={i} withBorder p="sm">
+            <Stack gap="xs">
+              <Group justify="flex-end">
+                <RemoveButton label={t('cv_review_remove_certification', { n: i + 1 })} onClick={() => removeItem('certifications', i)} />
+              </Group>
+              {CERTIFICATION_FIELDS.map(([key, label]) => input('certifications', i, key, label, certification))}
             </Stack>
           </Paper>
         ))}
